@@ -1,0 +1,38 @@
+:root{--bg:#efede8;--card:#fff;--ink:#222;--mut:#6b6b6b;--ac:#3b3b3b;--on:#fff;--f:system-ui,sans-serif;--r:14px;--hd:var(--ac)}
+[data-theme=swimming]{--bg:#dff1f5;--card:#f8fdff;--ink:#073247;--mut:#4d7a8c;--ac:#0b7fa8;--on:#fff;--f:"Trebuchet MS",system-ui,sans-serif;--r:24px;--hd:repeating-radial-gradient(circle at 50% 160%,transparent 0 16px,rgba(255,255,255,.2) 17px 18px),linear-gradient(#0b7fa8,#38a9c9)}
+[data-theme=books]{--bg:#e7dcc6;--card:#f3ead8;--ink:#1a1714;--mut:#6e5a47;--ac:#4a2f1b;--on:#f3ead8;--f:Georgia,"Times New Roman",serif;--r:2px;--hd:#1a1714}
+[data-theme=gardening]{--bg:#e2ebd6;--card:#f4f8ec;--ink:#1d3320;--mut:#5b7552;--ac:#3f7a38;--on:#fff;--f:"Gill Sans","Trebuchet MS",sans-serif;--r:18px;--hd:linear-gradient(135deg,#2f6a2e,#7fb24a)}
+[data-theme=gaming]{--bg:#14102a;--card:#201a40;--ink:#ece8ff;--mut:#9d94d6;--ac:#8f6bff;--on:#14102a;--f:"Courier New",monospace;--r:6px;--hd:#0c0920}
+[data-theme=cooking]{--bg:#fbeedf;--card:#fff8ef;--ink:#3a1a10;--mut:#8a5a45;--ac:#b3301c;--on:#fff8ef;--f:"Palatino Linotype",Palatino,serif;--r:12px;--hd:repeating-linear-gradient(45deg,#b3301c 0 14px,#c9503a 14px 28px)}
+[data-theme=photography]{--bg:#1c1c1c;--card:#262626;--ink:#f0f0f0;--mut:#a0a0a0;--ac:#f2c14e;--on:#1c1c1c;--f:"Helvetica Neue",Arial,sans-serif;--r:0;--hd:#000}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f);transition:background .3s,color .3s}
+header{background:var(--hd);color:var(--on);padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{margin:0;font-size:1.4rem}
+header p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+main{padding:16px 16px 120px;max-width:640px;margin:0 auto}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:12px;padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 12px);pointer-events:none}
+nav button{display:flex;align-items:center;justify-content:center;width:52px;height:52px;pointer-events:auto;border:0;border-radius:min(var(--r),14px);background:var(--card);color:var(--mut);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+nav button.on{background:var(--ac);color:var(--on)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.hico{opacity:.9;flex:none}.ico{flex:none;color:var(--ac)}
+.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card img.ph{width:100%;border-radius:calc(var(--r) / 2);display:block;margin-top:8px}
+.meta{color:var(--mut);font-size:.8rem}
+textarea,input[type=text],input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid color-mix(in srgb,var(--ink) 20%,transparent);border-radius:calc(var(--r) / 2);padding:10px;margin-bottom:8px}
+.btn{background:var(--ac);color:var(--on);border:0;border-radius:calc(var(--r) / 2);padding:10px 16px;font:inherit;cursor:pointer}
+.btn.ghost{background:none;color:var(--mut);padding:4px 6px;font-size:.8rem}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.name,.who{display:flex;align-items:center;gap:12px}.who{cursor:pointer}
+.empty{color:var(--mut);text-align:center;padding:32px 8px}
+.fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);width:56px;height:56px;border-radius:50%;border:0;background:var(--ac);color:var(--on);font-size:2rem;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.tog{display:flex;gap:8px;margin-bottom:12px}
+.tog .btn{flex:1;background:none;color:var(--ac);border:1px solid var(--ac)}.tog .btn.on{background:var(--ac);color:var(--on)}
+.av{border-radius:50%;object-fit:cover;background:var(--ac);color:var(--on);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.acts button{display:flex;align-items:center;gap:6px;background:none;border:1px solid color-mix(in srgb,var(--ink) 18%,transparent);border-radius:999px;padding:6px 12px;color:var(--mut);font:inherit;cursor:pointer}
+.acts button.on{color:var(--on);background:var(--ac);border-color:var(--ac)}
+.cm{border-top:1px solid color-mix(in srgb,var(--ink) 15%,transparent);margin-top:10px;padding-top:8px}
+.cm p{margin:6px 0}.faded{opacity:.5}
+.auth{margin:12vh auto 0;max-width:360px}.err{color:#c0392b}
