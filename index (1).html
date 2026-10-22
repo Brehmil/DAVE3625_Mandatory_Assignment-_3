@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Circles</title>
+<style>
+:root{--bg:#efede8;--card:#fff;--ink:#222;--mut:#6b6b6b;--ac:#3b3b3b;--on:#fff;--f:system-ui,sans-serif;--r:14px;--hd:var(--ac)}
+[data-theme=swimming]{--bg:#dff1f5;--card:#f8fdff;--ink:#073247;--mut:#4d7a8c;--ac:#0b7fa8;--on:#fff;--f:"Trebuchet MS",system-ui,sans-serif;--r:24px;--hd:repeating-radial-gradient(circle at 50% 160%,transparent 0 16px,rgba(255,255,255,.2) 17px 18px),linear-gradient(#0b7fa8,#38a9c9)}
+[data-theme=books]{--bg:#e7dcc6;--card:#f3ead8;--ink:#1a1714;--mut:#6e5a47;--ac:#4a2f1b;--on:#f3ead8;--f:Georgia,"Times New Roman",serif;--r:2px;--hd:#1a1714}
+[data-theme=gardening]{--bg:#e2ebd6;--card:#f4f8ec;--ink:#1d3320;--mut:#5b7552;--ac:#3f7a38;--on:#fff;--f:"Gill Sans","Trebuchet MS",sans-serif;--r:18px;--hd:linear-gradient(135deg,#2f6a2e,#7fb24a)}
+[data-theme=gaming]{--bg:#14102a;--card:#201a40;--ink:#ece8ff;--mut:#9d94d6;--ac:#8f6bff;--on:#14102a;--f:"Courier New",monospace;--r:6px;--hd:#0c0920}
+[data-theme=cooking]{--bg:#fbeedf;--card:#fff8ef;--ink:#3a1a10;--mut:#8a5a45;--ac:#b3301c;--on:#fff8ef;--f:"Palatino Linotype",Palatino,serif;--r:12px;--hd:repeating-linear-gradient(45deg,#b3301c 0 14px,#c9503a 14px 28px)}
+[data-theme=photography]{--bg:#1c1c1c;--card:#262626;--ink:#f0f0f0;--mut:#a0a0a0;--ac:#f2c14e;--on:#1c1c1c;--f:"Helvetica Neue",Arial,sans-serif;--r:0;--hd:#000}
+[data-theme=running]{--bg:#fff1e8;--card:#fffaf6;--ink:#2a1608;--mut:#8a5a3a;--ac:#ff5a1f;--on:#fff;--f:"Arial Narrow","Helvetica Neue",sans-serif;--r:10px;--hd:repeating-linear-gradient(0deg,#ff5a1f 0 8px,#ff7e47 8px 10px)}
+[data-theme=music]{--bg:#1a1024;--card:#2a1a3a;--ink:#f5e9ff;--mut:#b79ad6;--ac:#e040fb;--on:#1a1024;--f:Verdana,sans-serif;--r:16px;--hd:linear-gradient(135deg,#5b1b8a,#e040fb)}
+[data-theme=painting]{--bg:#fdf6ee;--card:#fff;--ink:#2a2133;--mut:#7d6b8a;--ac:#e0457b;--on:#fff;--f:"Trebuchet MS",sans-serif;--r:20px;--hd:linear-gradient(120deg,#e0457b,#f5a623,#3fb8af)}
+[data-theme=hiking]{--bg:#e9eadc;--card:#f6f6ec;--ink:#25301c;--mut:#6d7a5a;--ac:#6b4f2a;--on:#f6f6ec;--f:"Gill Sans",sans-serif;--r:8px;--hd:linear-gradient(#4a6741,#7d9a62)}
+[data-theme=cycling]{--bg:#e8f0f7;--card:#f7fbff;--ink:#10243a;--mut:#587490;--ac:#1769c9;--on:#fff;--f:"Helvetica Neue",Arial,sans-serif;--r:12px;--hd:repeating-linear-gradient(135deg,#1769c9 0 12px,#2a85e8 12px 24px)}
+[data-theme=yoga]{--bg:#f1ebf5;--card:#fbf8fd;--ink:#3a2d4a;--mut:#8a7b9c;--ac:#8e6bbf;--on:#fff;--f:Optima,"Segoe UI",sans-serif;--r:28px;--hd:linear-gradient(135deg,#b9a2e0,#f4c4d8)}
+[data-theme=fishing]{--bg:#dfe9ea;--card:#f1f7f7;--ink:#14302f;--mut:#547572;--ac:#1f6f6b;--on:#fff;--f:"Trebuchet MS",sans-serif;--r:16px;--hd:linear-gradient(#1f6f6b,#4aa8a0)}
+[data-theme=knitting]{--bg:#f6e9ea;--card:#fff6f6;--ink:#4a1d2c;--mut:#9a6a77;--ac:#c2415d;--on:#fff;--f:Georgia,serif;--r:22px;--hd:repeating-linear-gradient(45deg,#c2415d 0 6px,#d9607a 6px 12px)}
+[data-theme=chess]{--bg:#d9d4cc;--card:#efece6;--ink:#111;--mut:#5b564e;--ac:#111;--on:#efece6;--f:Georgia,serif;--r:0;--hd:repeating-conic-gradient(#111 0 25%,#2e2e2e 0 50%) 0 0/28px 28px}
+[data-theme=astronomy]{--bg:#0b1026;--card:#151c3d;--ink:#e6ebff;--mut:#8d9bd1;--ac:#ffd166;--on:#0b1026;--f:"Courier New",monospace;--r:14px;--hd:radial-gradient(circle at 20% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 60%,#fff 0 1px,transparent 2px),#0b1026}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f);transition:background .3s,color .3s}
+header{background:var(--hd);color:var(--on);padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{margin:0;font-size:1.4rem}
+header p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+main{padding:16px 16px 120px;max-width:640px;margin:0 auto}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:8px;padding:10px 8px calc(env(safe-area-inset-bottom,0px) + 12px);pointer-events:none}
+nav button{display:flex;align-items:center;justify-content:center;width:48px;height:48px;pointer-events:auto;border:0;border-radius:14px;background:var(--card);color:var(--mut);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+nav button.on{background:var(--ac);color:var(--on)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.hico{opacity:.9;flex:none}.ico{flex:none;color:var(--ac)}
+.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card img.ph{width:100%;border-radius:calc(var(--r) / 2);display:block;margin-top:8px}
+.meta{color:var(--mut);font-size:.8rem}
+textarea,input[type=text],input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid color-mix(in srgb,var(--ink) 20%,transparent);border-radius:calc(var(--r) / 2);padding:10px;margin-bottom:8px}
+.btn{background:var(--ac);color:var(--on);border:0;border-radius:calc(var(--r) / 2);padding:10px 16px;font:inherit;cursor:pointer}
+.btn.ghost{background:none;color:var(--mut);padding:4px 6px;font-size:.8rem}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.name,.who{display:flex;align-items:center;gap:12px}.who{cursor:pointer}
+.empty{color:var(--mut);text-align:center;padding:32px 8px}
+.fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);width:56px;height:56px;border-radius:50%;border:0;background:var(--ac);color:var(--on);font-size:2rem;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.tog{display:flex;gap:8px;margin-bottom:12px}
+.tog .btn{flex:1;background:none;color:var(--ac);border:1px solid var(--ac)}.tog .btn.on{background:var(--ac);color:var(--on)}
+.av{border-radius:50%;object-fit:cover;background:var(--ac);color:var(--on);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.acts button{display:flex;align-items:center;gap:6px;background:none;border:1px solid color-mix(in srgb,var(--ink) 18%,transparent);border-radius:999px;padding:6px 12px;color:var(--mut);font:inherit;cursor:pointer}
+.acts button.on{color:var(--on);background:var(--ac);border-color:var(--ac)}
+.acts{--up1:#2e9e5b;--up2:#7fd36b;--dn1:#e8742a;--dn2:#f2a45c;--uptx:#fff;--dntx:#fff}
+.acts[data-h=swimming]{--up1:#1e90ff;--up2:#38d0e8;--dn1:#ff5a47;--dn2:#ff9a62}
+.acts[data-h=books]{--up1:#b9791f;--up2:#dcae4e;--dn1:#7a1f2b;--dn2:#b8465a}
+.acts[data-h=gardening]{--up1:#2f9e44;--up2:#8bd450;--dn1:#e8590c;--dn2:#f5a623}
+.acts[data-h=gaming]{--up1:#22d3a0;--up2:#6bff8f;--dn1:#ff3b6b;--dn2:#ff7a45;--uptx:#14102a}
+.acts[data-h=cooking]{--up1:#e8590c;--up2:#ffa94d;--dn1:#3b5bdb;--dn2:#74a0ff;--uptx:#3a1a10}
+.acts[data-h=photography]{--up1:#d99a1c;--up2:#f2c14e;--dn1:#4a6fa5;--dn2:#7fa3d1;--uptx:#1c1c1c}
+.acts[data-h=running]{--up1:#ff5a1f;--up2:#ffb347;--dn1:#2563eb;--dn2:#60a5fa}
+.acts[data-h=music]{--up1:#e040fb;--up2:#ff80ab;--dn1:#00a8c0;--dn2:#4dd0e1}
+.acts[data-h=painting]{--up1:#e0457b;--up2:#f5a623;--dn1:#2f9e98;--dn2:#2a7de1}
+.acts[data-h=hiking]{--up1:#4a8f3a;--up2:#9ccc65;--dn1:#8d5a2b;--dn2:#c98f4a}
+.acts[data-h=cycling]{--up1:#1769c9;--up2:#42a5f5;--dn1:#ef6c00;--dn2:#ffb300}
+.acts[data-h=yoga]{--up1:#8e6bbf;--up2:#d1a5ec;--dn1:#e08a6b;--dn2:#f4b183}
+.acts[data-h=fishing]{--up1:#1f8f86;--up2:#5fd1bd;--dn1:#d9534f;--dn2:#f08a5d}
+.acts[data-h=knitting]{--up1:#c2415d;--up2:#ef8aa0;--dn1:#4b6cb7;--dn2:#8fa8e8}
+.acts[data-h=chess]{--up1:#3d3d3d;--up2:#7a7a7a;--dn1:#c9a227;--dn2:#f0d56a;--dntx:#111}
+.acts[data-h=astronomy]{--up1:#ffd166;--up2:#ffe9a3;--dn1:#7b61ff;--dn2:#b39dff;--uptx:#0b1026}
+.acts button.up{color:var(--up1);border-color:color-mix(in srgb,var(--up1) 45%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--up1) 16%,transparent),color-mix(in srgb,var(--up2) 16%,transparent))}
+.acts button.dn{color:var(--dn1);border-color:color-mix(in srgb,var(--dn1) 45%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--dn1) 16%,transparent),color-mix(in srgb,var(--dn2) 16%,transparent))}
+.acts button.up.on{color:var(--uptx);border-color:transparent;background:linear-gradient(135deg,var(--up1),var(--up2))}
+.acts button.dn.on{color:var(--dntx);border-color:transparent;background:linear-gradient(135deg,var(--dn1),var(--dn2))}
+.cm{border-top:1px solid color-mix(in srgb,var(--ink) 15%,transparent);margin-top:10px;padding-top:8px}
+.cm p{margin:6px 0}.faded{opacity:.5}
+.auth{margin:12vh auto 0;max-width:360px}.err{color:#c0392b}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ===== ICONS =====
+// Icon library: hobby icons, nav icons, and per-hobby reaction icons.
+const T='fill="currentColor" fill-opacity=".16"',F='fill="currentColor"';
+const ICONS={
+  swimming:`<circle cx="17" cy="6" r="2.2" ${F}/><path d="M4 12.5l5-3.5 4 2 2.5-3"/><path d="M12.5 11.5l2.5 2.5"/><path d="M2 16.5c2.2 0 2.2-1.5 4.5-1.5s2.2 1.5 4.5 1.5 2.2-1.5 4.5-1.5 2.2 1.5 4.5 1.5M2 20.5c2.2 0 2.2-1.5 4.5-1.5s2.2 1.5 4.5 1.5 2.2-1.5 4.5-1.5 2.2 1.5 4.5 1.5"/>`,
+  books:`<path d="M12 6.5C10 5 7 4.5 3 4.5v13.5c4 0 7 .5 9 2 2-1.5 5-2 9-2V4.5c-4 0-7 .5-9 2z" ${T}/><path d="M12 6.5v13.5M6 8.5c1.5 0 3 .2 4.5.8M6 12c1.5 0 3 .2 4.5.8M18 8.5c-1.5 0-3 .2-4.5.8M18 12c-1.5 0-3 .2-4.5.8"/>`,
+  gardening:`<path d="M5.5 15h13l-1.5 6H7z" ${T}/><path d="M12 15V9.5"/><path d="M12 10.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5zM12 13c0-3 2-4.5 5.5-4.5 0 3-2 4.5-5.5 4.5z" ${T}/>`,
+  gaming:`<path d="M7 7h10a5 5 0 0 1 4.8 6.5l-1 3.5a2.5 2.5 0 0 1-4.2 1l-1.8-2.5H9.2L7.4 18a2.5 2.5 0 0 1-4.2-1l-1-3.5A5 5 0 0 1 7 7z" ${T}/><path d="M7.5 10v4M5.5 12h4"/><circle cx="16" cy="11" r="1" ${F}/><circle cx="18.5" cy="13.5" r="1" ${F}/>`,
+  cooking:`<path d="M4.5 12h15v5a3.5 3.5 0 0 1-3.5 3.5H8A3.5 3.5 0 0 1 4.5 17z" ${T}/><path d="M3 12h18M10.5 9.5h3M12 9.5V12"/><path d="M8 3c-1 1 1 2 0 3.5M12 2c-1 1 1 2 0 3.5M16 3c-1 1 1 2 0 3.5"/>`,
+  photography:`<path d="M3 8.5a2 2 0 0 1 2-2h2.5L9 4h6l1.5 2.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" ${T}/><circle cx="12" cy="13" r="4"/><circle cx="12" cy="13" r="1.6" ${F}/><circle cx="17.5" cy="9.5" r=".8" ${F}/>`,
+  running:`<path d="M3 17v-4l4-1 2-3 3 2 5 2.5c2 .5 4 1 4 3.5v1H3z" ${T}/><path d="M3 20.5h18M9.5 10l1.5 2M12 11.5l1.5 1.5"/>`,
+  music:`<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5" ${T}/><circle cx="16.5" cy="16" r="2.5" ${T}/><path d="M9 10l10-2"/>`,
+  painting:`<path d="M12 3a9 9 0 0 0 0 18c1.5 0 2-1 1.5-2.2-.5-1.3.3-2.3 1.7-2.3H18a3 3 0 0 0 3-3C21 7 17 3 12 3z" ${T}/><circle cx="7.5" cy="11" r="1.2" ${F}/><circle cx="10.5" cy="7" r="1.2" ${F}/><circle cx="15.5" cy="7.5" r="1.2" ${F}/>`,
+  hiking:`<path d="M2 20l7-12 4 6 2-3 7 9z" ${T}/><path d="M9 8V4l4 1.5L9 7"/>`,
+  cycling:`<circle cx="6" cy="16" r="3.5" ${T}/><circle cx="18" cy="16" r="3.5" ${T}/><path d="M6 16l4-7h5l3 7M10 9l3 7H6M9 6.5h3"/>`,
+  yoga:`<circle cx="12" cy="5" r="2" ${F}/><path d="M12 8v5M5 11l7 2 7-2M7 20l5-7 5 7"/>`,
+  fishing:`<path d="M3 12c3-5 8-6 12-3l3-2v10l-3-2c-4 3-9 2-12-3z" ${T}/><circle cx="8" cy="11" r=".9" ${F}/><path d="M12 9.5c1 1.5 1 3.5 0 5"/>`,
+  knitting:`<circle cx="10" cy="14" r="6" ${T}/><path d="M5.5 11c3 1 6 .5 9-2M4.5 15c4 1.5 8 1 11-1.5M7 19c3 .5 6-.5 8-2.5"/><path d="M14 11l7-8M19 3l2 2"/>`,
+  chess:`<circle cx="12" cy="6.5" r="3" ${T}/><path d="M9.5 10c0 2.500-1 3.500-2.500 5h10c-1.500-1.500-2.500-2.500-2.500-5M5 21h14v-3H5z" ${T}/><path d="M7 15h10"/>`,
+  astronomy:`<circle cx="12" cy="12" r="5" ${T}/><ellipse cx="12" cy="12" rx="10" ry="3.5" transform="rotate(-20 12 12)"/><circle cx="19" cy="5" r=".8" ${F}/><circle cx="5" cy="19" r=".8" ${F}/>`,
+  n_photos:`<rect x="3" y="4" width="18" height="16" rx="3" ${T}/><circle cx="8.5" cy="9.5" r="1.8" ${F}/><path d="M3.5 17l5.5-5 4 3.5 2.5-2 5 4"/>`,
+  n_popular:`<path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6L12 16.6 6.6 19.6l1.2-6L3.3 9.4l6.1-.8z" ${T}/><path d="M12 14v-5M9.8 11l2.2-2.2 2.2 2.2"/>`,
+  n_text:`<path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" ${T}/><path d="M7.5 9h9M7.5 12.5h5.5"/>`,
+  n_add:`<rect x="3" y="3" width="18" height="18" rx="4" ${T}/><circle cx="7.5" cy="8" r="1" ${F}/><circle cx="7.5" cy="12" r="1" ${F}/><circle cx="7.5" cy="16" r="1" ${F}/><path d="M11 8h6M11 12h6M11 16h4"/>`,
+  n_hobbies:`<path d="M12 20.5s-8-4.7-8-10.5a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 10.5-8 10.5z" ${T}/><path d="M7.5 10a2.5 2.5 0 0 1 2-2"/>`,
+  n_me:`<circle cx="12" cy="12" r="9.5" ${T}/><circle cx="12" cy="9.5" r="3.2"/><path d="M5.8 18.5c1.2-2.6 3.5-4 6.2-4s5 1.4 6.200 4"/>`
+};
+// Themed reactions. Dislike reuses the like shape turned upside down.
+const REACT={
+  swimming:{like:`<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z" ${T}/>`,comment:`<circle cx="9" cy="15" r="5" ${T}/><circle cx="17" cy="8" r="3" ${T}/>`},
+  books:{like:`<path d="M6 3h12v18l-6-4-6 4z" ${T}/>`,comment:`<path d="M4 20l1-4L16 5l3 3L8 19zM14 7l3 3" ${T}/>`},
+  gardening:{like:`<path d="M5 19C5 10 10 5 20 5c0 10-5 15-15 14zM5 19l8-8" ${T}/>`,comment:`<circle cx="12" cy="6" r="2.8" ${T}/><circle cx="12" cy="18" r="2.8" ${T}/><circle cx="6" cy="12" r="2.8" ${T}/><circle cx="18" cy="12" r="2.8" ${T}/><circle cx="12" cy="12" r="1.5" ${F}/>`},
+  gaming:{like:`<path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6L12 16.6 6.6 19.6l1.2-6L3.3 9.4l6.1-.8z" ${T}/>`,comment:`<path d="M4 5h16v11h-7l-4 4v-4H4z" ${T}/><path d="M8 10.5h.01M12 10.5h.01M16 10.5h.01"/>`},
+  cooking:{like:`<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-9z" ${T}/>`,comment:`<path d="M4 17h16M6 17a6 6 0 0 1 12 0M12 9V7" ${T}/>`},
+  photography:{like:`<circle cx="12" cy="12" r="8" ${T}/><path d="M12 4l4 7M20 12l-7 4M12 20l-4-7M4 12l7-4"/>`,comment:`<rect x="4" y="5" width="16" height="14" rx="1" ${T}/><path d="M8 5v14M16 5v14"/>`},
+  running:{like:`<path d="M13 2L5 14h6l-1 8 8-12h-6z" ${T}/>`,comment:`<circle cx="12" cy="13" r="7" ${T}/><path d="M12 9v4l2.5 1.5M9.5 3h5"/>`},
+  music:{like:`<path d="M9 18V5l10-2v12"/><circle cx="6.5" cy="18" r="2.5" ${T}/><circle cx="16.5" cy="15" r="2.5" ${T}/>`,comment:`<path d="M4 12v0M8 8v8M12 5v14M16 8v8M20 11v2"/>`},
+  painting:{like:`<path d="M20 4L10 14l-2-2L18 2z" ${T}/><path d="M8 14c-3 0-4 2-4 4s-1 2-1 2c3 1 7 0 7-4z" ${T}/>`,comment:`<path d="M4 5h16v11H9l-5 4z" ${T}/><circle cx="9" cy="10.5" r="1" ${F}/><circle cx="12.5" cy="10.5" r="1" ${F}/>`},
+  hiking:{like:`<path d="M3 19l6-11 4 7 2-3 6 7z" ${T}/>`,comment:`<circle cx="12" cy="12" r="8" ${T}/><path d="M15 9l-1.5 4.5L9 15l1.5-4.5z"/>`},
+  cycling:{like:`<circle cx="12" cy="12" r="8" ${T}/><circle cx="12" cy="12" r="1.5" ${F}/><path d="M12 4v6.5M12 13.5V20M4 12h6.5M13.5 12H20"/>`,comment:`<path d="M6 17h12l-1.5-2V10a4.5 4.5 0 0 0-9 0v5z" ${T}/><path d="M10 20h4"/>`},
+  yoga:{like:`<path d="M12 4c3 3 3 7 0 10-3-3-3-7 0-10zM4 9c4 0 7 2 8 5-4 0-7-2-8-5zM20 9c-4 0-7 2-8 5 4 0 7-2 8-5z" ${T}/><path d="M5 18h14"/>`,comment:`<circle cx="12" cy="12" r="3" ${F}/><circle cx="12" cy="12" r="7"/>`},
+  fishing:{like:`<path d="M4 12c3-5 8-5 11-2l4-3v10l-4-3c-3 3-8 3-11-2z" ${T}/><circle cx="8.5" cy="11" r=".8" ${F}/>`,comment:`<path d="M13 3v12a4.5 4.5 0 0 1-9 0v-1.5M2 12l2 2 2-2"/><circle cx="13" cy="3" r="1" ${F}/>`},
+  knitting:{like:`<circle cx="12" cy="12" r="8" ${T}/><path d="M5 9c4 1.5 9 1 14-2M4.5 14c5 2 10 1 15-2M8 19.5c3 .5 7-1 9-4"/>`,comment:`<path d="M5 20L19 4M5 4l14 16"/><circle cx="19" cy="4" r="1.3" ${F}/><circle cx="19" cy="20" r="1.3" ${F}/>`},
+  chess:{like:`<path d="M4 18l-1-10 5 4 4-7 4 7 5-4-1 10z" ${T}/><path d="M4 21h16"/>`,comment:`<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 12h16M12 4v16"/><path d="M4 4h8v8H4zM12 12h8v8h-8z" ${F}/>`},
+  astronomy:{like:`<path d="M12 3c1 5 3 7 9 9-6 2-8 4-9 9-1-5-3-7-9-9 6-2 8-4 9-9z" ${T}/>`,comment:`<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z" ${T}/>`}
+};
+const HIDE='<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/>';
+const svg=(inner,n=28,c="ico",flip=false)=>`<svg class="${c}" viewBox="0 0 24 24" width="${n}" height="${n}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${flip?`<g transform="rotate(180 12 12)">${inner}</g>`:inner}</svg>`;
+const ico=(k,n,c)=>svg(ICONS[k],n,c);
+const rico=(h,t,n=20)=>t==="hide"?svg(HIDE,n,"ri"):svg(REACT[h][t==="dislike"?"like":t],n,"ri",t==="dislike");
+
+// ===== MODELS =====
+// MODEL: data, rules and saving (localStorage). Contains no HTML.
+const M=(()=>{
+const KEY="circles-db-v2";
+const H={
+  swimming:{name:"Swimming",tag:"Laps, open water and cold-lake bravery."},
+  books:{name:"Books",tag:"What you’re reading and what it did to you."},
+  gardening:{name:"Gardening",tag:"Seeds, soil and slow wins."},
+  gaming:{name:"Gaming",tag:"Runs, builds and rage-quits."},
+  cooking:{name:"Cooking",tag:"Dinners worth photographing."},
+  photography:{name:"Photography",tag:"One good frame at a time."},
+  running:{name:"Running",tag:"Early miles and personal bests."},
+  music:{name:"Music",tag:"Play it, make it, share it."},
+  painting:{name:"Painting",tag:"Colour, canvas and happy accidents."},
+  hiking:{name:"Hiking",tag:"Trails, summits and snack breaks."},
+  cycling:{name:"Cycling",tag:"Two wheels, long roads."},
+  yoga:{name:"Yoga",tag:"Stretch, breathe, repeat."},
+  fishing:{name:"Fishing",tag:"Patience, water and the one that got away."},
+  knitting:{name:"Knitting",tag:"One more row, always."},
+  chess:{name:"Chess",tag:"Openings, endgames and blunders."},
+  astronomy:{name:"Astronomy",tag:"Clear skies and faraway things."}};
+let db=null;
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert("Storage is full. Delete a photo post to free up space.")}};
+async function hash(pw,salt){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+pw));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function seed(){
+  const n=Date.now(),m=6e4,u=(id,name,bio,joined)=>({id,name,bio,pic:null,salt:null,hash:null,joined,current:null,hidden:[]});
+  const p=(id,hobby,who,text,ago,votes)=>({id,hobby,uid:who,text,img:null,t:n-ago*m,votes});
+  return{session:null,
+    users:[u("u1","Mira","Cold-water swimmer and lake enthusiast.",["swimming","photography"]),u("u2","Jonas","Reads too much, sleeps too little.",["books","cooking"]),u("u3","Elin","Tomatoes, tulips and bad puns.",["gardening","books"])],
+    posts:[p("p1","swimming","u1","Hit 2 km in the lake this morning. Water was 14 degrees.",20,{u2:1,u3:1}),
+      p("p2","books","u2","Finished a thousand-page novel. Need a lighter read next, suggestions?",90,{u3:1}),
+      p("p3","gardening","u3","First tomatoes of the year are finally turning red.",300,{u1:1,u2:1}),
+      p("p4","books","u3","Reread an old favourite and it hit differently this time.",1500,{}),
+      p("p5","cooking","u2","Burnt the garlic again. Lesson: never leave it alone.",60,{u1:-1})],
+    comments:[{id:"c1",pid:"p2",uid:"u3",text:"Try a short story collection!",t:n-60*m}]}}
+try{db=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!db){db=seed();save()}
+const user=i=>db.users.find(x=>x.id===i);
+const me=()=>user(db.session);
+const post=i=>db.posts.find(p=>p.id===i);
+const count=h=>db.posts.filter(p=>p.hobby===h).length;
+const members=h=>db.users.filter(x=>x.joined.includes(h)).length;
+return{H,user,me,post,members,count,
+  // --- accounts ---
+  async signUp(name,pw){
+    name=name.trim();
+    if(name.length<2||pw.length<4)return"Use a name of 2+ characters and a password of 4+.";
+    if(db.users.some(x=>x.name.toLowerCase()===name.toLowerCase()))return"That name is taken.";
+    const salt=uid("s"),u={id:uid("u"),name,bio:"",pic:null,salt,hash:await hash(pw,salt),joined:[],current:null,hidden:[]};
+    db.users.push(u);db.session=u.id;save();return null},
+  async logIn(name,pw){
+    const u=db.users.find(x=>x.hash&&x.name.toLowerCase()===name.trim().toLowerCase());
+    if(!u||u.hash!==await hash(pw,u.salt))return"Wrong name or password.";
+    db.session=u.id;save();return null},
+  logout(){db.session=null;save()},
+  update(patch){
+    if(patch.name!==undefined){const nm=patch.name.trim();
+      if(nm.length<2)return"Name needs 2+ characters.";
+      if(db.users.some(x=>x.id!==db.session&&x.name.toLowerCase()===nm.toLowerCase()))return"That name is taken.";
+      patch.name=nm}
+    Object.assign(me(),patch);save();return null},
+  // --- hobbies: most popular first (members, then posts) ---
+  popular(list){return list.slice().sort((a,b)=>members(b)-members(a)||count(b)-count(a))},
+  join(h){const u=me();if(!u.joined.includes(h))u.joined.push(h);u.current=h;save()},
+  setCurrent(h){me().current=h;save()},
+  leave(h){const u=me();u.joined=u.joined.filter(x=>x!==h);if(u.current===h)u.current=u.joined[0]||null;save()},
+  // most popular posts across all hobbies: likes minus dislikes, then comments, then newest
+  popularPosts(){const hid=me().hidden,sc=p=>Object.values(p.votes).reduce((a,b)=>a+b,0),nc=p=>db.comments.filter(c=>c.pid===p.id).length;
+    return db.posts.filter(p=>!hid.includes(p.id)).sort((a,b)=>sc(b)-sc(a)||nc(b)-nc(a)||b.t-a.t).slice(0,30)},
+  // --- posts: newest first ---
+  feed(h,photo,showHidden){const hid=me().hidden;return db.posts.filter(p=>p.hobby===h&&!!p.img===photo&&(showHidden||!hid.includes(p.id))).sort((a,b)=>b.t-a.t)},
+  hiddenIn(h,photo){const hid=me().hidden;return db.posts.filter(p=>p.hobby===h&&!!p.img===photo&&hid.includes(p.id)).length},
+  byUser(id){return db.posts.filter(p=>p.uid===id).sort((a,b)=>b.t-a.t)},
+  savePost(d){
+    const photo=d.kind==="photo";
+    if(d.id){const p=post(d.id);p.text=d.text;p.img=photo?d.img:null}
+    else db.posts.push({id:uid("p"),hobby:d.hobby,uid:db.session,text:d.text,img:photo?d.img:null,t:Date.now(),votes:{}});
+    save()},
+  remove(id){db.posts=db.posts.filter(p=>p.id!==id);db.comments=db.comments.filter(c=>c.pid!==id);save()},
+  // --- reactions ---
+  vote(id,v){const p=post(id),k=db.session;if(p.votes[k]===v)delete p.votes[k];else p.votes[k]=v;save()},
+  hide(id){const u=me();u.hidden=u.hidden.includes(id)?u.hidden.filter(x=>x!==id):[...u.hidden,id];save()},
+  comments(id){return db.comments.filter(c=>c.pid===id).sort((a,b)=>a.t-b.t)},
+  comment(id,text){db.comments.push({id:uid("c"),pid:id,uid:db.session,text,t:Date.now()});save()}
+}})();
+
+// ===== VIEWS =====
+// VIEW: turns data into HTML strings. Never changes data.
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const V={
+  ago(t){const s=(Date.now()-t)/1000;return s<60?"just now":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago"},
+  avatar(u,n=36){return u.pic?`<img class="av" src="${u.pic}" width="${n}" height="${n}" alt="${esc(u.name)}">`:`<div class="av" style="width:${n}px;height:${n}px;font-size:${Math.round(n/2.4)}px">${esc(u.name[0].toUpperCase())}</div>`},
+  auth(mode,err){const i=mode==="in";return`<div class="auth card"><h1>Circles</h1><p class="meta">Find your people through what you love.</p>
+    <div class="tog"><button class="btn ${i?"on":""}" onclick="C.mode('in')">Log in</button><button class="btn ${i?"":"on"}" onclick="C.mode('up')">Sign up</button></div>
+    ${err?`<p class="err">${esc(err)}</p>`:""}<input type="text" id="an" placeholder="Name" autocomplete="username"><input type="password" id="ap" placeholder="Password" autocomplete="${i?"current-password":"new-password"}">
+    <button class="btn" onclick="C.auth()">${i?"Log in":"Create account"}</button></div>`},
+  header(h,tab){if(tab==="popular")return`<header><div><h1>Popular</h1><p>Top posts and photos across every hobby.</p></div>${ico("n_popular",44,"hico")}</header>`;const x=h&&M.H[h];return`<header><div><h1>${x?esc(x.name):"Circles"}</h1><p>${x?esc(x.tag):"Join a hobby to get started."}</p></div>${x?ico(h,44,"hico"):""}</header>`},
+  nav(tab){return`<nav>${[["popular","Popular"],["photos","Photos"],["text","Posts"],["add","Explore hobbies"],["hobbies","My hobbies"],["me","Profile"]].map(([k,l])=>`<button class="${tab===k?"on":""}" onclick="C.go('${k}')" aria-label="${l}" title="${l}">${ico("n_"+k,28,"ni")}</button>`).join("")}</nav>`},
+  card(p,S,u,showHobby){
+    const a=M.user(p.uid),h=p.hobby,mine=p.uid===u.id,v=Object.values(p.votes),up=v.filter(x=>x>0).length,dn=v.filter(x=>x<0).length,cs=M.comments(p.id),hid=u.hidden.includes(p.id),my=p.votes[u.id];
+    const b=(on,fn,label,icon,n,c="")=>`<button class="${c} ${on?"on":""}" onclick="${fn}" aria-label="${label}" title="${label}">${icon}${n===undefined?"":`<span>${n}</span>`}</button>`;
+    return`<div class="card ${hid?"faded":""}"><div class="row"><div class="who" onclick="C.profile('${a.id}')">${V.avatar(a,34)}<div><strong>${esc(a.name)}</strong><div class="meta">${V.ago(p.t)}${showHobby?" · "+esc(M.H[h].name):""}</div></div></div>
+      ${mine?`<span><button class="btn ghost" onclick="C.compose(null,'${p.id}')">Edit</button><button class="btn ghost" onclick="C.del('${p.id}')">Delete</button></span>`:""}</div>
+      ${p.text?`<p>${esc(p.text)}</p>`:""}${p.img?`<img class="ph" src="${p.img}" alt="Photo in ${esc(M.H[h].name)}">`:""}
+      <div class="acts" data-h="${h}">${b(my===1,`C.vote('${p.id}',1)`,"Like",rico(h,"like"),up,"up")}${b(my===-1,`C.vote('${p.id}',-1)`,"Dislike",rico(h,"dislike"),dn,"dn")}${b(S.open[p.id],`C.toggle('${p.id}')`,"Comments",rico(h,"comment"),cs.length)}${mine?"":b(false,`C.hide('${p.id}')`,hid?"Unhide":"Hide",rico(h,"hide"))}</div>
+      ${S.open[p.id]?`<div class="cm">${cs.map(c=>`<p><strong>${esc(M.user(c.uid).name)}</strong> <span class="meta">${V.ago(c.t)}</span><br>${esc(c.text)}</p>`).join("")||`<p class="meta">No comments yet.</p>`}<div class="row"><input type="text" id="c-${p.id}" placeholder="Add a comment"><button class="btn" onclick="C.comment('${p.id}')">Send</button></div></div>`:""}</div>`},
+  feed(S,u,photo){
+    const h=u.current;
+    if(!h)return`<div class="empty">You haven’t picked a hobby yet.<br><br><button class="btn" onclick="C.go('add')">Explore hobbies</button></div>`;
+    const list=M.feed(h,photo,S.showHidden),hn=M.hiddenIn(h,photo);
+    return(list.length?list.map(p=>V.card(p,S,u)).join(""):`<div class="empty">${ico(h,40)}<br>No ${photo?"photos":"posts"} in ${esc(M.H[h].name)} yet. Tap + to share the first one.</div>`)
+      +(hn?`<button class="btn ghost" onclick="C.toggleHidden()">${S.showHidden?"Hide hidden posts":"Show "+hn+" hidden"}</button>`:"")
+      +`<button class="fab" aria-label="New post" onclick="C.compose('${photo?"photo":"text"}')">+</button>`},
+  compose(S){
+    const d=S.draft,ph=d.kind==="photo",name=esc(M.H[d.hobby].name);
+    return`<h2>${d.id?"Edit post":"New post"} in ${name}</h2>`+(d.id?"":`<div class="tog"><button class="btn ${ph?"":"on"}" onclick="C.kind('text')">Text</button><button class="btn ${ph?"on":""}" onclick="C.kind('photo')">Photo</button></div>`)
+      +`<div class="card">${ph?`${d.img?`<img class="ph" src="${d.img}" alt="Current photo"><br>`:""}<input type="file" id="file" accept="image/*"><br><br>`:""}<textarea id="txt" rows="${ph?2:5}" placeholder="${ph?"Add a caption":"Share something with "+name}">${esc(d.text)}</textarea><button class="btn" onclick="C.savePost()">${d.id?"Save changes":"Post"}</button> <button class="btn ghost" onclick="C.cancel()">Cancel</button></div>`},
+  hobbyRow(k,btn){return`<div class="card row"><div class="name">${ico(k)}<div><strong>${M.H[k].name}</strong><div class="meta">${M.members(k)} members · ${M.count(k)} posts</div></div></div>${btn}</div>`},
+  explore(u){const rest=M.popular(Object.keys(M.H).filter(k=>!u.joined.includes(k)));
+    return`<h2>Explore hobbies</h2><p class="meta">Most popular first.</p>`+(rest.length?rest.map(k=>V.hobbyRow(k,`<button class="btn" onclick="C.join('${k}')">Join</button>`)).join(""):`<div class="empty">You’ve joined every hobby for now.</div>`)},
+  mine(u){const my=M.popular(u.joined);
+    return`<h2>My hobbies</h2>`+(my.length?my.map(k=>V.hobbyRow(k,`<span><button class="btn" onclick="C.pick('${k}')">${u.current===k?"Viewing":"Open"}</button> <button class="btn ghost" onclick="C.leave('${k}')">Leave</button></span>`)).join(""):`<div class="empty">No hobbies yet. Tap Explore hobbies to join one.</div>`)},
+  profile(S,u){
+    const id=S.viewUid||u.id,a=M.user(id),own=id===u.id,posts=M.byUser(id);
+    const top=own?`<div class="card"><div id="pvw">${V.avatar(a,80)}</div><br><input type="file" id="pf" accept="image/*" onchange="C.picChosen(this)"><br><br><input type="text" id="pn" value="${esc(a.name)}" aria-label="Name"><textarea id="pb" rows="3" placeholder="Tell people about yourself">${esc(a.bio)}</textarea><button class="btn" onclick="C.saveProfile()">Save profile</button> <button class="btn ghost" onclick="C.logout()">Log out</button></div>`
+      :`<div class="card"><div class="name">${V.avatar(a,80)}<div><h2 style="margin:0">${esc(a.name)}</h2><div class="meta">${a.joined.map(k=>esc(M.H[k].name)).join(", ")}</div></div></div><p>${esc(a.bio)||"<span class=meta>No bio yet.</span>"}</p></div>`;
+    return top+`<h2>${own?"Your posts":"Posts"}</h2>`+(posts.length?posts.map(p=>V.card(p,S,u,true)).join(""):`<div class="empty">No posts yet.</div>`)},
+  popular(S,u){const l=(S.order||[]).map(M.post).filter(p=>p&&!u.hidden.includes(p.id));return l.length?l.map(p=>V.card(p,S,u,true)).join(""):`<div class="empty">Nothing here yet.</div>`},
+  page(S,u){return({popular:()=>V.popular(S,u),photos:()=>V.feed(S,u,true),text:()=>V.feed(S,u,false),compose:()=>V.compose(S),add:()=>V.explore(u),hobbies:()=>V.mine(u),me:()=>V.profile(S,u)})[S.tab]()}
+};
+
+// ===== CONTROLLER =====
+// CONTROLLER: handles clicks, asks the Model to change data, then redraws the View.
+const C=(()=>{
+const S={order:null,tab:"text",mode:"in",err:"",open:{},showHidden:false,viewUid:null,draft:null,back:"text",pic:null};
+const $=s=>document.querySelector(s);
+function shrink(f,max,cb){const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{
+  const k=Math.min(1,max/Math.max(i.width,i.height)),c=document.createElement("canvas");
+  c.width=i.width*k;c.height=i.height*k;c.getContext("2d").drawImage(i,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",.7))};i.src=r.result};r.readAsDataURL(f)}
+function render(){
+  const u=M.me(),app=$("#app");
+  if(!u){document.body.dataset.theme="none";app.innerHTML=V.auth(S.mode,S.err);return}
+  if(S.tab==="compose"&&!S.draft)S.tab="text";
+  if(S.tab==="popular"&&!S.order)S.order=M.popularPosts().map(p=>p.id); // order is frozen until you reopen the page
+  document.body.dataset.theme=S.tab==="popular"?"none":(u.current||"none");
+  app.innerHTML=V.header(u.current,S.tab)+`<main>${V.page(S,u)}</main>`+V.nav(S.tab)}
+const api={
+  mode(m){S.mode=m;S.err="";render()},
+  async auth(){const n=$("#an").value,p=$("#ap").value;S.err=(S.mode==="in"?await M.logIn(n,p):await M.signUp(n,p))||"";S.tab="text";render()},
+  logout(){M.logout();S.tab="text";S.viewUid=null;render()},
+  go(t){S.order=null;S.tab=t;S.viewUid=null;S.draft=null;render()},
+  pick(h){M.setCurrent(h);S.tab="text";render()},
+  join(h){M.join(h);S.tab="text";render()},
+  leave(h){if(confirm("Leave "+M.H[h].name+"? Your posts stay, but it disappears from your list.")){M.leave(h);render()}},
+  vote(id,v){M.vote(id,v);render()},
+  hide(id){M.hide(id);render()},
+  toggle(id){S.open[id]=!S.open[id];render()},
+  toggleHidden(){S.showHidden=!S.showHidden;render()},
+  comment(id){const t=$("#c-"+id).value.trim();if(!t)return;M.comment(id,t);S.open[id]=true;render()},
+  compose(kind,id){
+    const p=id&&M.post(id);if(S.tab!=="compose")S.back=S.tab;
+    S.draft=p?{id:p.id,hobby:p.hobby,kind:p.img?"photo":"text",text:p.text,img:p.img}:{id:null,hobby:M.me().current,kind,text:"",img:null};
+    S.tab="compose";render()},
+  kind(k){S.draft.text=$("#txt").value;S.draft.kind=k;render()},
+  cancel(){S.draft=null;S.tab=S.back;render()},
+  savePost(){
+    const d=S.draft,text=$("#txt").value.trim(),photo=d.kind==="photo",f=photo&&$("#file").files[0];
+    const done=img=>{
+      if(photo&&!img){alert("Choose a photo first.");return}
+      if(!photo&&!text){alert("Write something first.");return}
+      M.savePost({...d,text,img});
+      S.tab=S.back==="me"?"me":(photo?"photos":"text");S.draft=null;render()};
+    f?shrink(f,800,done):done(d.img)},
+  del(id){if(confirm("Delete this post?")){M.remove(id);render()}},
+  profile(id){S.tab="me";S.viewUid=id===M.me().id?null:id;render();scrollTo(0,0)},
+  picChosen(input){const f=input.files[0];if(f)shrink(f,240,d=>{S.pic=d;$("#pvw").innerHTML=V.avatar({pic:d,name:"?"},80)})},
+  saveProfile(){const err=M.update({name:$("#pn").value,bio:$("#pb").value,...(S.pic?{pic:S.pic}:{})});if(err){alert(err);return}S.pic=null;render()}
+};
+render();
+return api})();
+
+</script>
+</body>
+</html>
