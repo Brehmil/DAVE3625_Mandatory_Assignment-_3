@@ -1,10 +1,61 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!--
+=====================================================================
+ CIRCLES - a hobby-themed social app, all in ONE html file
+=====================================================================
+ The file has two big parts:
+   <style>   the looks (CSS), written in layers - read its guide first
+   <script>  the behaviour, split into four sections:
+       ICONS       the drawings (hobby, navigation and reaction icons)
+       MODELS  M   the data and the rules. Saves to the browser. No HTML here.
+       VIEWS   V   functions that turn data into HTML text. They never change data.
+       CONTROLLER C  what happens on a click: tell the Model to change the data,
+                   then call render() so the View redraws the page.
+
+ The loop that drives everything:
+   click -> C.something() -> M changes + saves data -> render() -> V builds HTML -> page updates
+
+ Saved in the browser (localStorage):
+   circles-db-v2   users, posts, comments and direct messages
+   circles-dark    "1" or "0"  (dark mode on/off)
+   circles-skin    aurora | holographic | deep-ocean | classic
+
+ Everything lives in your own browser - there is no shared server, so
+ other people on other devices do not see your posts. Passwords are
+ hashed (salted SHA-256), but this is a prototype, not a real login system.
+=====================================================================
+-->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Circles</title>
 <style>
+/* ---------------------------------------------------------------------
+   HOW THE CSS IS LAYERED
+   CSS rules further DOWN override earlier ones when they are equally
+   specific, so the file is a stack of layers:
+     1. Foundation + hobby colours   variables (--bg, --ac ...) per hobby
+     2. Base + components            plain layout: header, nav, cards, buttons
+     3. Neumorphic layer             soft "pressed / raised" button look and dark mode
+     4. Header, messages, files      square header, DM button, bubbles, file picker
+     5. Skins                        Aurora / Holographic / Deep Ocean colours
+     6. Shared skin rules            how those colours are applied on non-hobby pages
+     7. Menu, comments, posts        appearance menu, threaded comments, square posts
+     8. Classic fixes                tweaks for the "classic" skin
+
+   WHICH ATTRIBUTES SWITCH THE LOOK (set by render() in the script)
+     <body data-theme="swimming|books|...|none">  the hobby being viewed;
+            "none" on Popular, Explore, My hobbies, Profile, Messages, login
+     <body data-mode="light|dark">                 light or dark mode
+     <body data-skin="aurora|holographic|...">     chosen theme (neutral pages only)
+     <div data-h="swimming">                       a post/row: gives it its hobby's
+            like/dislike colours (--up1/--up2 = like, --dn1/--dn2 = dislike)
+
+   THE ":not(#x)" TRICK
+   Writing body:not(#x) adds one "id" worth of priority to a selector, so a
+   rule wins over the theme rules without needing !important.
+   --------------------------------------------------------------------- */
 /* ===== SHARED FOUNDATION: same font, shape and layout on every page ===== */
 :root{
   --f:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -16,6 +67,7 @@
 
 /* ===== HOBBY COLOURS: colours only, nothing else may change per hobby =====
    Line 1 = page palette (header, background, buttons). Line 2 = like/dislike colours on that hobby's posts. */
+/* Hobby palettes. Variables: --bg page, --card post background, --ink text, --mut faint text, --ac accent, --on text on the accent. */
 [data-theme=swimming]{--bg:#dff1f5;--card:#f8fdff;--ink:#073247;--mut:#4d7a8c;--ac:#0b7fa8;--on:#fff}
 [data-h=swimming]{--up1:#1e90ff;--up2:#38d0e8;--dn1:#ff5a47;--dn2:#ff9a62}
 [data-theme=books]{--bg:#e7dcc6;--card:#f3ead8;--ink:#1a1714;--mut:#6e5a47;--ac:#4a2f1b;--on:#f3ead8}
@@ -56,7 +108,6 @@ button,input,textarea{font:inherit}
 body{--line:color-mix(in srgb,var(--ink) 18%,transparent);background:var(--bg);color:var(--ink);font-family:var(--f);transition:background .3s,color .3s}
 header{background:var(--ac);color:var(--on);padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 header h1{margin:0;font-size:1.4rem}
-header p{margin:4px 0 0;opacity:.85;font-size:.9rem}
 main{padding:16px 16px 120px;max-width:640px;margin:0 auto}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:8px;padding:10px 8px calc(env(safe-area-inset-bottom,0px) + 12px);pointer-events:none}
 nav button{display:flex;align-items:center;justify-content:center;width:48px;height:48px;pointer-events:auto;border:0;border-radius:14px;background:var(--card);color:var(--mut);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
@@ -65,7 +116,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .hico{opacity:.9;flex:none}.ico{flex:none;color:var(--ac)}
 
 /* ===== COMPONENTS ===== */
-.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px;overflow-wrap:anywhere}
 .card img.ph{width:100%;border-radius:calc(var(--r) / 2);display:block;margin-top:8px}
 .meta{color:var(--mut);font-size:.8rem}
 textarea,input[type=text],input[type=password]{width:100%;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:calc(var(--r) / 2);padding:10px;margin-bottom:8px}
@@ -75,32 +126,267 @@ textarea,input[type=text],input[type=password]{width:100%;color:var(--ink);backg
 .name,.who{display:flex;align-items:center;gap:12px}.who{cursor:pointer}
 .name h2{margin:0}
 .empty{color:var(--mut);text-align:center;padding:32px 8px}
-.fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);width:56px;height:56px;border-radius:50%;border:0;background:var(--ac);color:var(--on);font-size:2rem;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .tog{display:flex;gap:8px;margin-bottom:12px}
 .tog .btn{flex:1;background:none;color:var(--ac);border:1px solid var(--ac)}.tog .btn.on{background:var(--ac);color:var(--on)}
 .av{border-radius:50%;object-fit:cover;background:var(--ac);color:var(--on);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
 .cm{border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
 .cm p{margin:6px 0}.faded{opacity:.5}
 .auth{margin:12vh auto 0;max-width:360px}.err{color:#c0392b}
+/* .toast = small message at the bottom of the screen (replaces the native alert pop-ups) */
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);max-width:min(90vw,380px);background:#2b2b2b;color:#fff;padding:10px 16px;border-radius:14px;font-size:.88rem;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:1000;text-align:center}
 
 /* ===== POST ACTIONS (like / dislike / comment / hide) ===== */
-.acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-.acts button{display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--mut);cursor:pointer}
+.acts{display:flex;align-items:flex-end;gap:4px;margin-top:10px;flex-wrap:wrap}
+.acts button{display:flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;background:none;border:1px solid var(--line);border-radius:50%;color:var(--mut);cursor:pointer}
+.acts button .ri{width:20px;height:20px}
+.cb{display:inline-flex;flex-direction:column;align-items:center;gap:3px}   /* one reaction = number on top, round button below */
+.cn{font-size:.85rem;line-height:1;font-weight:800;color:var(--mut)}
+.acts>.cb .cn{font-size:.78rem}
+.cb:has(button.up) .cn{color:var(--up1)}
+.cb:has(button.dn) .cn{color:var(--dn1)}
+.cn[data-n="0"],.cn[data-n=""]{visibility:hidden}   /* zero counts stay invisible but keep their space */
+.cact{margin-top:6px}                                 /* the same row, but under a comment: smaller */
+.cact button{width:30px;height:30px}
+.cact button .ri{width:15px;height:15px}
 .acts button.on{color:var(--on);background:var(--ac);border-color:var(--ac)}
 .acts button.up{--c1:var(--up1);--c2:var(--up2);--tx:var(--uptx)}
 .acts button.dn{--c1:var(--dn1);--c2:var(--dn2);--tx:var(--dntx)}
 .acts button.up,.acts button.dn{color:var(--c1);border-color:color-mix(in srgb,var(--c1) 45%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--c1) 16%,transparent),color-mix(in srgb,var(--c2) 16%,transparent))}
 .acts button.up.on,.acts button.dn.on{color:var(--tx);border-color:transparent;background:linear-gradient(135deg,var(--c1),var(--c2))}
+
+/* ===== VARIANT: Neumorphic buttons + Tonal posts, with dark/light mode ===== */
+:root{--r:28px;--f:Roboto,"Google Sans","Segoe UI",system-ui,-apple-system,sans-serif;--ac:#6c63ff;--on:#fff}
+/* both modes are derived from each hobby's accent colour */
+/* Light and dark mode: both are generated from each hobby's accent colour (--ac) mixed with white or near-black.
+   --acx is the accent as used on screen (lightened in dark mode); --k controls how strong the soft shadows are.
+*/
+body[data-mode=light]{--acx:var(--ac);--bg:color-mix(in srgb,var(--ac) 13%,#f6f5f2);--card:color-mix(in srgb,var(--ac) 5%,#fff);--ink:#1a1b20;--mut:#666a76;--k:.14}
+body[data-mode=dark]{--acx:color-mix(in srgb,var(--ac) 50%,#fff);--bg:color-mix(in srgb,var(--ac) 14%,#0e0f13);--card:color-mix(in srgb,var(--ac) 18%,#14161b);--ink:#eceef3;--mut:#9a9eac;--on:#0e0f13;--k:.085}
+/* Neumorphism: every raised button has TWO shadows, a dark one (--sd) down-right and a light one (--sl) up-left.
+   --raise / --small = sticking out, --press = pushed in.
+*/
+body{--surf:var(--bg);--tone:color-mix(in srgb,var(--acx) 11%,var(--bg));--tone2:color-mix(in srgb,var(--acx) 21%,var(--bg));
+ --sd:oklch(from var(--bg) calc(l - var(--k)) c h);--sl:oklch(from var(--bg) calc(l + var(--k)) c h);
+ --raise:7px 7px 16px var(--sd),-7px -7px 16px var(--sl);--small:4px 4px 9px var(--sd),-4px -4px 9px var(--sl);--press:inset 5px 5px 10px var(--sd),inset -5px -5px 10px var(--sl)}
+/* inside a post the surface is the tone colour, so button shadows are recomputed from it */
+.card{--surf:var(--tone);--sd:oklch(from var(--tone) calc(l - var(--k)) c h);--sl:oklch(from var(--tone) calc(l + var(--k)) c h);
+ --small:4px 4px 9px var(--sd),-4px -4px 9px var(--sl);--press:inset 4px 4px 8px var(--sd),inset -4px -4px 8px var(--sl)}
+.ico,.hico,.ni,.ri{stroke-width:1.8}
+.ico{color:var(--acx)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline-color:var(--acx)}
+
+/* posts: tonal bento */
+header{background:var(--acx);color:var(--on);border-radius:0 0 40px 40px;padding-bottom:24px}
+.card{background:var(--tone);box-shadow:none;border:0}
+.card img.ph{border-radius:20px}
+.av{background:var(--tone2);color:var(--acx);box-shadow:none}
+textarea,input[type=text],input[type=password]{background:var(--tone2);border:0;border-bottom:2px solid var(--acx);border-radius:16px 16px 4px 4px;padding:12px 14px;box-shadow:none;color:var(--ink)}
+
+/* buttons: neumorphic */
+nav button{background:var(--bg);color:var(--mut);box-shadow:var(--small);border-radius:18px}
+nav button.on{background:var(--bg);color:var(--acx);box-shadow:var(--press)}
+.btn{background:var(--surf);color:var(--acx);font-weight:700;border-radius:16px;box-shadow:var(--small)}
+.btn:active{box-shadow:var(--press)}
+.btn.ghost{background:none;box-shadow:none;color:var(--mut)}
+.tog .btn{border:0;color:var(--mut)}
+.tog .btn.on{background:var(--surf);color:var(--acx);box-shadow:var(--press)}
+.acts button{border:0;background-color:var(--surf);box-shadow:3px 3px 7px var(--sd),-3px -3px 7px var(--sl)}
+.acts button.on:not(.up):not(.dn){background:var(--surf);color:var(--acx);box-shadow:inset 3px 3px 6px var(--sd),inset -3px -3px 6px var(--sl)}
+body[data-mode=dark] .acts button.up:not(.on),body[data-mode=dark] .acts button.dn:not(.on){color:color-mix(in srgb,var(--c1) 60%,#fff)}
+
+body[data-mode=dark] header{background:color-mix(in srgb,var(--ac) 42%,#14151b);color:var(--ink)}
+
+/* Header buttons (DM, + , appearance, join/leave): a square with a translucent version of the header's own text colour. */
+/* ===== v2: square header, icon left, DM button, file picker, messages ===== */
+header{border-radius:0;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 14px}
+.hl{display:flex;align-items:center;gap:12px;min-width:0}
+header h1{font-size:1.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hico{opacity:1;flex:none}
+/* .dmbtn is the shared style for ALL square header buttons, not only messages. */
+.dmbtn{position:relative;flex:none;width:44px;height:44px;border:0;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:inherit;background:color-mix(in srgb,currentColor 16%,transparent)}
+.dmbtn.on{background:color-mix(in srgb,currentColor 30%,transparent);box-shadow:inset 0 0 0 2px currentColor}
+.dmbtn:active{transform:scale(.96)}
+.hr{display:flex;gap:6px;flex:none}
+.hr .dmbtn{width:42px;height:42px}
+/* .badge = the red unread counter on the DM button (.badge.in is the same thing inside a conversation row). */
+.badge{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff4d4f;color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.badge.in{position:static;margin-top:4px;margin-left:auto}
+/* file picker */
+input[type=file]{width:100%;color:var(--mut);font-size:.85rem;padding:8px;border:0;border-radius:16px;background:var(--tone2);margin-bottom:8px}
+input[type=file]::file-selector-button{margin-right:12px;border:0;border-radius:12px;padding:9px 14px;background:var(--surf);color:var(--acx);font:inherit;font-weight:700;cursor:pointer;box-shadow:var(--small)}
+input[type=file]::file-selector-button:active{box-shadow:var(--press)}
+/* messages */
+.convo{cursor:pointer}.cv{min-width:0}.cr{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end}
+.cut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.pick{padding:8px 0}
+.btn{white-space:nowrap}
+.row>h2{margin:0;font-size:1.2rem}
+.msgs{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+/* Chat bubbles in a direct-message conversation: .me = yours (right), .them = theirs (left). */
+.bub{max-width:80%;padding:10px 14px;border-radius:20px;line-height:1.35;overflow-wrap:anywhere}
+.bub.me{align-self:flex-end;background:var(--acx);color:var(--on);border-bottom-right-radius:6px}
+.bub.them{align-self:flex-start;background:var(--tone);border-bottom-left-radius:6px}
+.bt{font-size:.68rem;opacity:.7;margin-top:2px}
+.dmcomp{display:flex;gap:8px;align-items:flex-start;margin-top:12px}
+.dmcomp input{flex:1;margin:0}
+
+/* ===== THEMES ===== */
+/* Skins. Two lines per skin (light + dark). Each line sets the same 20 variables that the shared rules below read:
+     --bg page colour   --card post colour   --ink text   --mut faint text   --acx accent
+     --bon text on gradient buttons   --hon text on the header
+     --mesh page background (soft coloured blobs)   --hdr header background   --hfx glossy overlay on the header
+     --cbg / --cbd / --csh / --cblur   card background, border, shadow, blur ("glass" effect)
+     --grad main gradient (buttons, avatars, active nav)   --tgrad gradient used for heading text
+     --navb / --navbd / --navsh   nav button background, border, shadow   --glow glow on the active nav button
+   Optional extras a skin may add (each has a fallback below): --deco, --hsh, --hls, --htt, --hf, --hts, --cr, --btnsh.
+   To make a new skin: copy two lines, change the name in [data-skin=...] and the colours, and add it to SKINS in the script.
+*/
+body[data-theme=none][data-skin=aurora][data-mode=light]{--bg:#eef3fb;--card:#fff;--ink:#16183a;--mut:#5c6288;--acx:#5b6cff;--bon:#fff;--hon:#fff;--mesh:radial-gradient(60% 45% at 0% 0%,#8ef0d8 0,transparent 70%),radial-gradient(55% 45% at 100% 10%,#b9a6ff 0,transparent 70%),radial-gradient(60% 50% at 80% 100%,#ffb6dd 0,transparent 70%),radial-gradient(50% 40% at 0% 90%,#9fd4ff 0,transparent 70%),#f3f7fb;--hdr:linear-gradient(110deg,#10b8a3,#5b6cff 55%,#c04dff);--hfx:radial-gradient(60% 140% at 85% -30%,rgba(255,255,255,.5),transparent 60%);--cbg:rgba(255,255,255,.55);--cbd:1px solid rgba(255,255,255,.75);--csh:0 10px 34px -12px rgba(91,108,255,.35);--cblur:blur(18px) saturate(160%);--grad:linear-gradient(120deg,#10b8a3,#5b6cff,#c04dff);--tgrad:linear-gradient(120deg,#0a8f80,#4b5cf0,#a233e0);--navb:rgba(255,255,255,.6);--navbd:rgba(255,255,255,.8);--navsh:0 8px 20px -8px rgba(91,108,255,.45);--glow:0 10px 24px -6px rgba(91,108,255,.7);}
+body[data-theme=none][data-skin=aurora][data-mode=dark]{--bg:#080b1f;--card:#12142e;--ink:#eef0ff;--mut:#a3a9d6;--acx:#8ea0ff;--bon:#0a0c22;--hon:#fff;--mesh:radial-gradient(55% 45% at 0% 0%,rgba(16,184,163,.45),transparent 70%),radial-gradient(55% 45% at 100% 15%,rgba(139,92,255,.5),transparent 70%),radial-gradient(60% 50% at 70% 100%,rgba(255,80,180,.35),transparent 70%),#070a1c;--hdr:linear-gradient(110deg,#0b7f78,#3a3fd0 55%,#8a2fc9);--hfx:radial-gradient(60% 140% at 85% -30%,rgba(255,255,255,.22),transparent 60%);--cbg:rgba(20,24,56,.55);--cbd:1px solid rgba(255,255,255,.12);--csh:0 12px 40px -14px rgba(120,100,255,.55);--cblur:blur(18px) saturate(160%);--grad:linear-gradient(120deg,#2ee6c8,#7b8cff,#d36bff);--tgrad:linear-gradient(120deg,#2ee6c8,#8ea0ff,#e08aff);--navb:rgba(20,24,56,.6);--navbd:rgba(255,255,255,.14);--navsh:0 0 18px -6px rgba(123,140,255,.6);--glow:0 0 24px rgba(123,140,255,.75);}
+body[data-theme=none][data-skin=holographic][data-mode=light]{--bg:#fbf8ff;--card:#fff;--ink:#241f4a;--mut:#6c6a96;--acx:#6a5af0;--bon:#1d1a44;--hon:#2a2350;--mesh:radial-gradient(60% 45% at 10% 5%,#ffc9ec,transparent 70%),radial-gradient(60% 45% at 95% 20%,#bfe3ff,transparent 70%),radial-gradient(60% 50% at 70% 100%,#c9ffe9,transparent 70%),radial-gradient(50% 40% at 0% 85%,#fff1b8,transparent 70%),#fbf8ff;--hdr:linear-gradient(115deg,#ff9bd5,#9ec8ff 30%,#9affd9 55%,#ffe98a 78%,#ffa6e0);--hfx:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.65) 50%,transparent 65%);--cbg:linear-gradient(135deg,rgba(255,255,255,.8),rgba(255,232,248,.6) 40%,rgba(224,238,255,.6) 70%,rgba(226,255,244,.65));--cbd:1px solid rgba(255,255,255,.95);--csh:0 0 0 1px rgba(160,120,255,.16),0 12px 34px -14px rgba(120,140,255,.55);--cblur:blur(18px) saturate(160%);--grad:linear-gradient(120deg,#ff7ac8,#7aa8ff,#4fe0b8);--tgrad:linear-gradient(120deg,#d6329c,#3f6fe0,#139b78);--navb:rgba(255,255,255,.7);--navbd:rgba(255,255,255,.95);--navsh:0 8px 20px -8px rgba(122,168,255,.7);--glow:0 10px 24px -6px rgba(255,122,200,.7);}
+body[data-theme=none][data-skin=holographic][data-mode=dark]{--bg:#0b0a1a;--card:#16142c;--ink:#f1eeff;--mut:#aaa6d6;--acx:#b9a8ff;--bon:#120f2a;--hon:#fff;--mesh:radial-gradient(55% 45% at 5% 0%,rgba(255,110,200,.4),transparent 70%),radial-gradient(55% 45% at 100% 20%,rgba(110,160,255,.4),transparent 70%),radial-gradient(60% 50% at 60% 100%,rgba(70,230,190,.32),transparent 70%),#0b0a1a;--hdr:linear-gradient(115deg,#a1317a,#3f5fc4 35%,#118a73 62%,#b8a02a 82%,#a1317a);--hfx:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);--cbg:linear-gradient(135deg,rgba(255,255,255,.11),rgba(180,160,255,.08) 50%,rgba(110,255,220,.09));--cbd:1px solid rgba(255,255,255,.15);--csh:0 12px 36px -14px rgba(150,130,255,.5);--cblur:blur(18px) saturate(160%);--grad:linear-gradient(120deg,#ff7ac8,#7aa8ff,#4fe0b8);--tgrad:linear-gradient(120deg,#ff9bd5,#9ec8ff,#7affd0);--navb:rgba(22,20,44,.65);--navbd:rgba(255,255,255,.16);--navsh:0 0 18px -6px rgba(122,168,255,.7);--glow:0 0 24px rgba(255,122,200,.6);}
+body[data-theme=none][data-skin=deep-ocean][data-mode=light]{--bg:#e8f7fd;--card:#fff;--ink:#08283e;--mut:#4a7a92;--acx:#0a7bb8;--bon:#fff;--hon:#fff;--mesh:radial-gradient(70% 45% at 50% -5%,#b8f2ff,transparent 70%),radial-gradient(60% 50% at 0% 100%,#8fd0ff,transparent 70%),radial-gradient(60% 50% at 100% 90%,#7fe8d6,transparent 70%),#e8f7fd;--hdr:linear-gradient(110deg,#0a6fb8,#12a6c9 50%,#1fc9a8);--hfx:linear-gradient(180deg,rgba(255,255,255,0.34),transparent 65%);--cbg:rgba(255,255,255,.6);--cbd:1px solid rgba(255,255,255,.85);--csh:0 12px 34px -14px rgba(10,111,184,.55);--cblur:blur(16px) saturate(150%);--grad:linear-gradient(120deg,#0a6fb8,#12a6c9,#1fc9a8);--tgrad:linear-gradient(120deg,#0a5a99,#0a8aa6,#0b9a80);--navb:rgba(255,255,255,.65);--navbd:rgba(255,255,255,.9);--navsh:0 8px 20px -8px rgba(10,111,184,.55);--glow:0 10px 24px -6px rgba(10,150,200,.75);}
+body[data-theme=none][data-skin=deep-ocean][data-mode=dark]{--bg:#03101f;--card:#0a2238;--ink:#e6f8ff;--mut:#8fc2d6;--acx:#4fd4ff;--bon:#03233a;--hon:#fff;--mesh:radial-gradient(70% 45% at 50% -5%,rgba(40,170,220,.45),transparent 70%),radial-gradient(60% 50% at 0% 100%,rgba(10,70,160,.6),transparent 70%),radial-gradient(60% 50% at 100% 90%,rgba(20,200,170,.3),transparent 70%),#03101f;--hdr:linear-gradient(110deg,#06406e,#0a7a99 55%,#10a58a);--hfx:linear-gradient(180deg,rgba(255,255,255,0.14),transparent 65%);--cbg:rgba(8,40,70,.58);--cbd:1px solid rgba(120,220,255,.18);--csh:0 14px 40px -14px rgba(0,160,220,.55);--cblur:blur(16px) saturate(150%);--grad:linear-gradient(120deg,#3cc0ff,#33e0d0,#6fffc4);--tgrad:linear-gradient(120deg,#4fd4ff,#4ff0dc,#8fffd2);--navb:rgba(8,40,70,.7);--navbd:rgba(120,220,255,.2);--navsh:0 0 18px -6px rgba(60,192,255,.6);--glow:0 0 24px rgba(60,224,255,.7);}
+
+/* ===== stunning non-themed pages (Popular, Explore, My hobbies, Profile, Messages, login) ===== */
+/* Skin rules shared by every skin on the neutral pages. They read the variables defined just above.
+   .chip = the little coloured square with the hobby icon in the hobby lists.
+*/
+.chip{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;flex:none;background:linear-gradient(135deg,var(--up1),var(--up2));color:var(--uptx,#fff);box-shadow:0 8px 16px -8px var(--up1)}
+/* Page background, header, cards, buttons, nav, avatars, chat bubbles: all coloured from the skin's variables. */
+body[data-theme=none]:not([data-skin=classic]){background:var(--mesh);background-attachment:fixed;min-height:100vh}
+body[data-theme=none]:not([data-skin=classic]) header{background:var(--hdr);color:var(--hon);position:relative;overflow:hidden;box-shadow:var(--hsh,0 12px 30px -14px rgba(0,0,0,.45))}
+body[data-theme=none]:not([data-skin=classic]) header::before{content:"";position:absolute;inset:0;background:var(--hfx,none);pointer-events:none}
+body[data-theme=none]:not([data-skin=classic]) header>*{position:relative}
+body[data-theme=none]:not([data-skin=classic]) header h1{letter-spacing:var(--hls,0);text-transform:var(--htt,none);font-family:var(--hf,inherit);text-shadow:var(--hts,none)}
+body[data-theme=none]:not([data-skin=classic]) .card{position:relative;overflow:hidden;background:var(--cbg);border:var(--cbd);box-shadow:var(--csh);backdrop-filter:var(--cblur,none);-webkit-backdrop-filter:var(--cblur,none);border-radius:var(--cr,var(--r))}
+/* Posts get a tint of their hobby colour and a 5px stripe down the left edge (the ::before element). */
+body[data-theme=none]:not([data-skin=classic]) .card[data-h]:not(.row){padding-left:19px;background:radial-gradient(90% 70% at 100% 0%,color-mix(in srgb,var(--up1) 16%,transparent),transparent 65%),var(--cbg)}
+body[data-theme=none]:not([data-skin=classic]) .card[data-h]:not(.row)::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(var(--up1),var(--up2))}
+/* .pcard = the profile card with a gradient banner behind the avatar. */
+body[data-theme=none]:not([data-skin=classic]) .pcard{padding-top:14px}
+body[data-theme=none]:not([data-skin=classic]) .pcard::before{content:"";position:absolute;left:0;right:0;top:0;height:92px;background:var(--grad)}
+body[data-theme=none]:not([data-skin=classic]) .pcard>*{position:relative}
+body[data-theme=none]:not([data-skin=classic]) .pcard .name{margin-top:52px;align-items:flex-end}
+body[data-theme=none]:not([data-skin=classic]) .pcard .av{border:4px solid var(--bg)}
+body[data-theme=none]:not([data-skin=classic]) main h2,body[data-theme=none]:not([data-skin=classic]) .auth h1{background:var(--tgrad);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block;font-family:var(--hf,inherit)}
+body[data-theme=none]:not([data-skin=classic]) .auth h1{font-size:2.3rem}
+body[data-theme=none]:not([data-skin=classic]) .btn{background:var(--grad);color:var(--bon);box-shadow:var(--btnsh,0 8px 20px -8px rgba(0,0,0,.45));font-weight:700;border-radius:14px}
+body[data-theme=none]:not([data-skin=classic]) .btn:active{transform:translateY(1px);box-shadow:none}
+body[data-theme=none]:not([data-skin=classic]) .btn.ghost,body[data-theme=none]:not([data-skin=classic]) .tog .btn:not(.on){background:none;box-shadow:none;color:var(--mut)}
+body[data-theme=none]:not([data-skin=classic]) nav button{background:var(--navb);border:1px solid var(--navbd);box-shadow:var(--navsh);color:var(--mut);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+body[data-theme=none]:not([data-skin=classic]) nav button.on{background:var(--grad);color:var(--bon);border-color:transparent;box-shadow:var(--glow)}
+body[data-theme=none]:not([data-skin=classic]) .av{background:var(--grad);color:var(--bon);box-shadow:0 4px 12px -4px rgba(0,0,0,.4)}
+body[data-theme=none]:not([data-skin=classic]) .acts button{background-color:color-mix(in srgb,var(--ink) 6%,transparent);box-shadow:none;border:1px solid color-mix(in srgb,var(--ink) 14%,transparent)}
+body[data-theme=none]:not([data-skin=classic]) .bub.me{background:var(--grad);color:var(--bon)}
+body[data-theme=none]:not([data-skin=classic]) .bub.them{background:var(--cbg);border:var(--cbd);backdrop-filter:var(--cblur,none);-webkit-backdrop-filter:var(--cblur,none)}
+body[data-theme=none]:not([data-skin=classic])[data-mode=light] .dmbtn{background:rgba(255,255,255,.34)}
+body[data-theme=none]:not([data-skin=classic])[data-mode=dark] .dmbtn{background:rgba(255,255,255,.16)}
+body[data-theme=none]:not([data-skin=classic]) .dmbtn.on{background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 2px currentColor}
+body[data-theme=none]:not([data-skin=classic])::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--deco,none)}
+
+/* .authstyle = the appearance button floating top-right on the login screen (there is no header there).
+   .skinmenu = the dropdown with the Light/Dark switch and the theme list (.seg = the switch, .skinopt = one theme row).
+*/
+/* ===== theme button + menu ===== */
+.authstyle{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;z-index:5;color:var(--acx)}
+.authstyle .dmbtn{background:var(--card,rgba(255,255,255,.5));box-shadow:0 4px 14px -6px rgba(0,0,0,.35)}
+.skinback{position:fixed;inset:0;z-index:29}
+.skinmenu{position:fixed;z-index:30;right:12px;top:calc(env(safe-area-inset-top,0px) + 66px);width:min(280px,calc(100vw - 24px));padding:10px;border-radius:24px;background:var(--card);color:var(--ink);box-shadow:0 18px 44px -10px rgba(0,0,0,.5),0 0 0 1px rgba(128,128,160,.25);display:flex;flex-direction:column;gap:4px;backdrop-filter:blur(18px)}
+.skinmenu .seg{display:flex;gap:4px;padding:4px;border-radius:18px;background:rgba(128,128,160,.16);margin-bottom:6px}
+.skinmenu .seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;background:none;color:var(--mut);padding:9px 6px;border-radius:14px;font:inherit;font-weight:600;cursor:pointer}
+.skinmenu .seg button.on{background:var(--card);color:var(--ink);box-shadow:0 2px 8px -2px rgba(0,0,0,.35)}
+.skinmenu .seg .ico{width:18px;height:18px}
+.skinhint{font-size:.72rem;color:var(--mut);padding:4px 10px 8px;line-height:1.3}
+.skinopt{display:flex;align-items:center;gap:12px;border:0;background:none;color:var(--ink);padding:8px 10px;border-radius:16px;font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.skinopt:hover{background:rgba(128,128,160,.14)}
+.skinopt.on{background:rgba(128,128,160,.22)}
+.skinopt .sw{width:30px;height:30px;border-radius:10px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4),0 4px 10px -4px rgba(0,0,0,.4)}
+.skinopt .ck{margin-left:auto;color:var(--acx)}
+.dmsearch{width:100%;margin:10px 0 6px}
+#dmres{max-height:46vh;overflow:auto}
+
+/* Comments. Each comment is a .cmt; replies are .cmt inside .cmt, indented with a line in the hobby colour.
+   After 3 levels (.flat) the indent stops so replies don't get squeezed on a phone.
+*/
+/* ===== threaded comments ===== */
+/* .cmh = comment header (avatar, name, time). */
+.cmt{margin:10px 0 0}
+.cmt .cmt{margin-left:12px;padding-left:12px;border-left:2px solid color-mix(in srgb,var(--up1,var(--ac)) 45%,transparent)}
+.cmt .cmt.flat{margin-left:0}
+.cmh{display:flex;align-items:center;gap:8px}
+.cmt>p{margin:4px 0 0}
+
+/* .composer = the single comment box under a post. When you press reply on a comment it shows "Replying to ..." (.replying) above the field. */
+.composer{margin-top:12px}
+.cin{display:flex;align-items:center;gap:4px}
+.cin input[type=text]{flex:1;min-width:0;margin:0;padding:7px 14px;font-size:.88rem;border-radius:999px;background:color-mix(in srgb,var(--ink,#000) 4%,transparent);border:1px solid color-mix(in srgb,var(--ink,#000) 12%,transparent);box-shadow:none;color:var(--ink)}
+.cin input[type=text]::placeholder{color:var(--mut);opacity:.8}
+.sendbtn{flex:none;width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:50%;background:none;color:var(--acx,var(--ac));cursor:pointer}
+.sendbtn:hover{background:color-mix(in srgb,var(--acx,var(--ac)) 14%,transparent)}
+.sendbtn:active{transform:scale(.92)}
+.replying{display:flex;align-items:center;justify-content:space-between;font-size:.78rem;color:var(--mut);padding:0 6px 6px}
+.replying button{border:0;background:none;color:var(--mut);cursor:pointer;font-size:.9rem;padding:2px 6px;border-radius:8px}
+
+/* ===== posts are angular (no rounded corners) =====
+   `:not(#x)` adds an id's worth of specificity so these win over the theme rules above without !important */
+body:not(#x) .card[data-h]:not(.row){border-radius:0}
+body:not(#x) .card[data-h]:not(.row) img.ph{border-radius:0}
+body:not(#x) .card[data-h]:not(.row)::before{border-radius:0}
+
+/* ===== account deletion / destructive buttons ===== */
+/* Delete-account area in "Edit profile". */
+.danger{margin-top:18px;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--ink,#000) 14%,transparent)}
+.danger p{margin:0 0 10px}
+body:not(#x) .dangerlink{color:#d93a3a}
+body:not(#x) .danger-btn{background:#d93a3a;color:#fff;box-shadow:none}
+
+/* hobby icon next to the poster's name: no background, drawn in the hobby colour, clickable */
+.nm{display:flex;align-items:center;gap:6px}
+.hbadge{display:inline-grid;place-items:center;flex:none;background:none;border:0;padding:0;margin:0;color:var(--up1);cursor:pointer;transition:transform .12s}
+.hbadge svg{width:30px;height:30px;color:inherit}
+body[data-mode=dark] .hbadge{color:color-mix(in srgb,var(--up1) 62%,#fff)}   /* lighter in dark mode so dark colours (chess) stay visible */
+.hbadge:hover{transform:scale(1.12)}.hbadge:active{transform:scale(.94)}
+
+/* Classic skin on neutral pages: it keeps the old neumorphic look, but the reaction buttons are flat like the other skins. */
+/* classic on neutral pages: flat reaction buttons like the other themes */
+body[data-theme=none][data-skin=classic] .acts button{background-color:color-mix(in srgb,var(--ink) 6%,transparent);box-shadow:none;border:1px solid color-mix(in srgb,var(--ink) 14%,transparent)}
+body[data-theme=none][data-skin=classic] .acts button.on:not(.up):not(.dn){background-color:color-mix(in srgb,var(--acx) 16%,transparent);color:var(--acx);box-shadow:none}
+
+/* classic posts: thin divider + the hobby colour stripe on the left edge */
+body[data-theme=none][data-skin=classic] .card[data-h]:not(.row){box-shadow:0 1px 0 color-mix(in srgb,var(--ink) 8%,transparent);position:relative;overflow:hidden;padding-left:19px}
+body[data-theme=none][data-skin=classic] .card[data-h]:not(.row)::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(var(--up1),var(--up2))}
+body:not(#x) .dmbtn.leavebtn.confirm{background:#d93a3a;color:#fff;box-shadow:none}
+
+/* classic profile card: same size and layout as the other skins (banner behind the avatar), banner coloured from the accent */
+body[data-theme=none][data-skin=classic] .pcard{position:relative;overflow:hidden;padding-top:14px;border:1px solid transparent}
+body[data-theme=none][data-skin=classic] .pcard::before{content:"";position:absolute;left:0;right:0;top:0;height:92px;background:linear-gradient(135deg,color-mix(in srgb,var(--acx) 80%,#000),var(--acx) 55%,color-mix(in srgb,var(--acx) 55%,#fff))}
+body[data-theme=none][data-skin=classic] .pcard>*{position:relative}
+body[data-theme=none][data-skin=classic] .pcard .name{margin-top:52px;align-items:flex-end}
+body[data-theme=none][data-skin=classic] .pcard .av{border:4px solid var(--bg)}
+
+/* classic cards get the same invisible 1px border the other skins have, so every card (profile, edit form, hobby rows, messages) ends up exactly the same size */
+body[data-theme=none][data-skin=classic] .card{border:1px solid transparent}
+
+/* classic: headings and chat bubbles take exactly the same space as in the other skins
+   (the other skins make headings inline-block for their gradient text, which changes the spacing around them) */
+body[data-theme=none][data-skin=classic] main h2{display:inline-block}
+body[data-theme=none][data-skin=classic] .bub.them{border:1px solid transparent}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
+// Every icon is just the inside of a 24x24 <svg>. svg() wraps it, ico() draws hobby/nav icons, rico() draws reaction icons.
+// T = soft "tinted" fill, F = solid fill, so one icon can mix outline and filled parts.
 // ===== ICONS =====
 // Icon library: hobby icons, nav icons, and per-hobby reaction icons.
 const T='fill="currentColor" fill-opacity=".16"',F='fill="currentColor"';
+// The star shape is reused (Popular icon, Gaming "like").
 const STAR=`<path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6L12 16.6 6.6 19.6l1.2-6L3.3 9.4l6.1-.8z" ${T}/>`;
+// ICONS: hobby icons (swimming ... astronomy) and navigation icons (n_...). n_dm is the envelope on the DM button.
 const ICONS={
+  n_dm:`<rect x="3" y="5" width="18" height="14" rx="3" ${T}/><path d="M4 7.5l8 6 8-6"/>`,
   swimming:`<circle cx="17" cy="6" r="2.2" ${F}/><path d="M4 12.5l5-3.5 4 2 2.5-3"/><path d="M12.5 11.5l2.5 2.5"/><path d="M2 16.5c2.2 0 2.2-1.5 4.5-1.5s2.2 1.5 4.5 1.5 2.2-1.5 4.5-1.5 2.2 1.5 4.5 1.5M2 20.5c2.2 0 2.2-1.5 4.5-1.5s2.2 1.5 4.5 1.5 2.2-1.5 4.5-1.5 2.2 1.5 4.5 1.5"/>`,
   books:`<path d="M12 6.5C10 5 7 4.5 3 4.5v13.5c4 0 7 .5 9 2 2-1.5 5-2 9-2V4.5c-4 0-7 .5-9 2z" ${T}/><path d="M12 6.5v13.5M6 8.5c1.5 0 3 .2 4.5.8M6 12c1.5 0 3 .2 4.5.8M18 8.5c-1.5 0-3 .2-4.5.8M18 12c-1.5 0-3 .2-4.5.8"/>`,
   gardening:`<path d="M5.5 15h13l-1.5 6H7z" ${T}/><path d="M12 15V9.5"/><path d="M12 10.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5zM12 13c0-3 2-4.5 5.5-4.5 0 3-2 4.5-5.5 4.5z" ${T}/>`,
@@ -115,16 +401,17 @@ const ICONS={
   yoga:`<circle cx="12" cy="5" r="2" ${F}/><path d="M12 8v5M5 11l7 2 7-2M7 20l5-7 5 7"/>`,
   fishing:`<path d="M3 12c3-5 8-6 12-3l3-2v10l-3-2c-4 3-9 2-12-3z" ${T}/><circle cx="8" cy="11" r=".9" ${F}/><path d="M12 9.5c1 1.5 1 3.5 0 5"/>`,
   knitting:`<circle cx="10" cy="14" r="6" ${T}/><path d="M5.5 11c3 1 6 .5 9-2M4.5 15c4 1.5 8 1 11-1.5M7 19c3 .5 6-.5 8-2.5"/><path d="M14 11l7-8M19 3l2 2"/>`,
-  chess:`<circle cx="12" cy="6.5" r="3" ${T}/><path d="M9.5 10c0 2.500-1 3.500-2.500 5h10c-1.500-1.500-2.500-2.500-2.500-5M5 21h14v-3H5z" ${T}/><path d="M7 15h10"/>`,
+  chess:`<circle cx="12" cy="6.5" r="3" ${T}/><path d="M9.5 10c0 2.5-1 3.5-2.5 5h10c-1.5-1.5-2.5-2.5-2.5-5M5 21h14v-3H5z" ${T}/><path d="M7 15h10"/>`,
   astronomy:`<circle cx="12" cy="12" r="5" ${T}/><ellipse cx="12" cy="12" rx="10" ry="3.5" transform="rotate(-20 12 12)"/><circle cx="19" cy="5" r=".8" ${F}/><circle cx="5" cy="19" r=".8" ${F}/>`,
   n_photos:`<rect x="3" y="4" width="18" height="16" rx="3" ${T}/><circle cx="8.5" cy="9.5" r="1.8" ${F}/><path d="M3.5 17l5.5-5 4 3.5 2.5-2 5 4"/>`,
   n_popular:`${STAR}<path d="M12 14v-5M9.8 11l2.2-2.2 2.2 2.2"/>`,
   n_text:`<path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" ${T}/><path d="M7.5 9h9M7.5 12.5h5.5"/>`,
   n_add:`<rect x="3" y="3" width="18" height="18" rx="4" ${T}/><circle cx="7.5" cy="8" r="1" ${F}/><circle cx="7.5" cy="12" r="1" ${F}/><circle cx="7.5" cy="16" r="1" ${F}/><path d="M11 8h6M11 12h6M11 16h4"/>`,
   n_hobbies:`<path d="M12 20.5s-8-4.7-8-10.5a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 10.5-8 10.5z" ${T}/><path d="M7.5 10a2.5 2.5 0 0 1 2-2"/>`,
-  n_me:`<circle cx="12" cy="12" r="9.5" ${T}/><circle cx="12" cy="9.5" r="3.2"/><path d="M5.8 18.5c1.2-2.6 3.5-4 6.2-4s5 1.4 6.200 4"/>`
+  n_me:`<circle cx="12" cy="12" r="9.5" ${T}/><circle cx="12" cy="9.5" r="3.2"/><path d="M5.8 18.5c1.2-2.6 3.5-4 6.2-4s5 1.4 6.2 4"/>`
 };
 // Themed reactions. Dislike reuses the like shape turned upside down.
+// REACT: per hobby, a themed "like" and "comment" icon. The dislike icon is the like icon turned upside down (see rico).
 const REACT={
   swimming:{like:`<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z" ${T}/>`,comment:`<circle cx="9" cy="15" r="5" ${T}/><circle cx="17" cy="8" r="3" ${T}/>`},
   books:{like:`<path d="M6 3h12v18l-6-4-6 4z" ${T}/>`,comment:`<path d="M4 20l1-4L16 5l3 3L8 19zM14 7l3 3" ${T}/>`},
@@ -143,15 +430,34 @@ const REACT={
   chess:{like:`<path d="M4 18l-1-10 5 4 4-7 4 7 5-4-1 10z" ${T}/><path d="M4 21h16"/>`,comment:`<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 12h16M12 4v16"/><path d="M4 4h8v8H4zM12 12h8v8h-8z" ${F}/>`},
   astronomy:{like:`<path d="M12 3c1 5 3 7 9 9-6 2-8 4-9 9-1-5-3-7-9-9 6-2 8-4 9-9z" ${T}/>`,comment:`<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z" ${T}/>`}
 };
+// Sun and moon icons for the Light / Dark switch in the appearance menu.
+const MOON=`<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z" ${T}/>`;
+const SUN=`<circle cx="12" cy="12" r="4" ${T}/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>`;
+// SKINS: the themes in the appearance menu. id matches [data-skin=...] in the CSS, sw is the little colour swatch in the menu.
+const SKINS=[{id:"aurora",name:"Aurora",sw:"linear-gradient(135deg,#10b8a3,#5b6cff,#c04dff)"},{id:"holographic",name:"Holographic",sw:"linear-gradient(135deg,#ff9bd5,#9ec8ff,#9affd9,#ffe98a)"},{id:"deep-ocean",name:"Deep Ocean",sw:"linear-gradient(135deg,#0a6fb8,#12a6c9,#1fc9a8)"},{id:"classic",name:"Classic",sw:"linear-gradient(135deg,#6c63ff,#a59fff)"}];
+// The "hide post" eye icon.
 const HIDE='<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/>';
+// svg(inner,size,cssClass,flip): wraps drawing data in an <svg>. flip=true rotates it 180 degrees (used for dislike).
 const svg=(inner,n=28,c="ico",flip=false)=>`<svg class="${c}" viewBox="0 0 24 24" width="${n}" height="${n}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${flip?`<g transform="rotate(180 12 12)">${inner}</g>`:inner}</svg>`;
+// ico(name,size,class): hobby or navigation icon by name.
 const ico=(k,n,c)=>svg(ICONS[k],n,c);
+// rico(hobby,type,size): reaction icon for a hobby. type = "like" | "dislike" | "comment" | "hide".
 const rico=(h,t,n=20)=>t==="hide"?svg(HIDE,n,"ri"):svg(REACT[h][t==="dislike"?"like":t],n,"ri",t==="dislike");
 
+// MODEL: the data and the rules. Nothing in here makes HTML.
+// The whole database is one object, `db`, saved as JSON in localStorage:
+//   db.session   id of the logged-in user (or null)
+//   db.users     {id, name, bio, pic, salt, hash, joined:[hobbies], current:hobby being viewed, hidden:[post ids]}
+//   db.posts     {id, hobby, uid, text, img, t:time, votes:{userId: 1 or -1}}
+//   db.comments  {id, pid:post id, parent:comment id or null, uid, text, t, votes:{...}}
+//   db.dms       {id, from, to, text, t, seen}
 // ===== MODELS =====
 // MODEL: data, rules and saving (localStorage). Contains no HTML.
 const M=(()=>{
+// localStorage key for the database. Change it to start with a fresh, empty database.
 const KEY="circles-db-v2";
+// H: the hobbies. The key (swimming...) must match the icon names, the [data-theme] and [data-h] CSS and REACT.
+// "tag" taglines are not shown anywhere at the moment - kept in case you want them back.
 const H={
   swimming:{name:"Swimming",tag:"Laps, open water and cold-lake bravery."},
   books:{name:"Books",tag:"What you’re reading and what it did to you."},
@@ -169,159 +475,312 @@ const H={
   knitting:{name:"Knitting",tag:"One more row, always."},
   chess:{name:"Chess",tag:"Openings, endgames and blunders."},
   astronomy:{name:"Astronomy",tag:"Clear skies and faraway things."}};
+// db is loaded below (or created from seed()).
 let db=null;
+// uid("p") makes a unique id such as "p1k3x9a" (a prefix, the current time and a random part).
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert("Storage is full. Delete a photo post to free up space.")}};
+// save(): write db to localStorage. If the browser storage is full (big photos), tell the user.
+// toast(msg): shows a short message at the bottom of the screen for a few seconds. Used instead of alert(), so it also works in browsers that block pop-ups and doesn't re-render (typed text stays).
+window.toast=function(msg){document.querySelectorAll(".toast").forEach(e=>e.remove());const t=document.createElement("div");t.className="toast";t.setAttribute("role","alert");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4000)}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){toast("Storage is full. Delete a photo post to free up space.")}};
+// hash(): salted SHA-256 of the password, so the real password is never stored. Needs https or localhost (crypto.subtle).
 async function hash(pw,salt){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+pw));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+// seed(): the demo data used the very first time: no users, posts, comments or messages. These demo users have no password, so nobody can log in as them.
 function seed(){
   const n=Date.now(),m=6e4,u=(id,name,bio,joined)=>({id,name,bio,pic:null,salt:null,hash:null,joined,current:null,hidden:[]});
   const p=(id,hobby,who,text,ago,votes)=>({id,hobby,uid:who,text,img:null,t:n-ago*m,votes});
   return{session:null,
-    users:[u("u1","Mira","Cold-water swimmer and lake enthusiast.",["swimming","photography"]),u("u2","Jonas","Reads too much, sleeps too little.",["books","cooking"]),u("u3","Elin","Tomatoes, tulips and bad puns.",["gardening","books"])],
-    posts:[p("p1","swimming","u1","Hit 2 km in the lake this morning. Water was 14 degrees.",20,{u2:1,u3:1}),
-      p("p2","books","u2","Finished a thousand-page novel. Need a lighter read next, suggestions?",90,{u3:1}),
-      p("p3","gardening","u3","First tomatoes of the year are finally turning red.",300,{u1:1,u2:1}),
-      p("p4","books","u3","Reread an old favourite and it hit differently this time.",1500,{}),
-      p("p5","cooking","u2","Burnt the garlic again. Lesson: never leave it alone.",60,{u1:-1})],
-    comments:[{id:"c1",pid:"p2",uid:"u3",text:"Try a short story collection!",t:n-60*m}]}}
+    users:[],
+    posts:[],
+    comments:[],
+    dms:[]}}
 try{db=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!db){db=seed();save()}
+if(!db.dms){db.dms=[];save()}
+// One-time clean-up: the first time this version opens, delete all accounts, posts, comments and messages already saved in this browser (and all accounts, logging everyone out).
+try{if(!localStorage.getItem("circles-cleared-2")){db.users=[];db.posts=[];db.comments=[];db.dms=[];db.session=null;save();localStorage.setItem("circles-cleared-2","1")}}catch(e){}
+// Small lookup helpers used below: user(id), me() = logged-in user, post(id), count(hobby) = posts, members(hobby) = members.
 const user=i=>db.users.find(x=>x.id===i);
 const me=()=>user(db.session);
 const post=i=>db.posts.find(p=>p.id===i);
 const count=h=>db.posts.filter(p=>p.hobby===h).length;
 const members=h=>db.users.filter(x=>x.joined.includes(h)).length;
+// Everything below is the public API of the model, used as M.something() from the View and Controller.
 return{H,user,me,post,members,count,
   // --- accounts ---
+  // signUp: checks name/password length and that the name is free, creates the user, adds a welcome DM and logs in. Returns an error text, or null when it worked.
   async signUp(name,pw){
     name=name.trim();
     if(name.length<2||pw.length<4)return"Use a name of 2+ characters and a password of 4+.";
     if(db.users.some(x=>x.name.toLowerCase()===name.toLowerCase()))return"That name is taken.";
     const salt=uid("s"),u={id:uid("u"),name,bio:"",pic:null,salt,hash:await hash(pw,salt),joined:[],current:null,hidden:[]};
     db.users.push(u);db.session=u.id;save();return null},
+  // logIn: finds the user by name and compares password hashes. Returns an error text or null.
   async logIn(name,pw){
     const u=db.users.find(x=>x.hash&&x.name.toLowerCase()===name.trim().toLowerCase());
     if(!u||u.hash!==await hash(pw,u.salt))return"Wrong name or password.";
     db.session=u.id;save();return null},
   logout(){db.session=null;save()},
+  // deleteAccount: checks the password, then removes the user, their posts, their comments (and every reply under removed comments), their votes and their DMs.
+  async deleteAccount(pw){const u=me();if(!u)return"Not logged in.";if(!pw)return"Enter your password to confirm.";if(await hash(pw,u.salt)!==u.hash)return"Wrong password.";
+    const id=u.id,mine=new Set(db.posts.filter(p=>p.uid===id).map(p=>p.id));
+    db.posts=db.posts.filter(p=>p.uid!==id);
+    const gone=new Set(db.comments.filter(c=>c.uid===id||mine.has(c.pid)).map(c=>c.id));let ch=true;
+    while(ch){ch=false;db.comments.forEach(c=>{if(!gone.has(c.id)&&c.parent&&gone.has(c.parent)){gone.add(c.id);ch=true}})}
+    db.comments=db.comments.filter(c=>!gone.has(c.id));
+    db.posts.forEach(p=>{delete p.votes[id]});db.comments.forEach(c=>{if(c.votes)delete c.votes[id]});
+    db.dms=db.dms.filter(d=>d.from!==id&&d.to!==id);
+    db.users=db.users.filter(x=>x.id!==id);db.session=null;save();return null},
+  // update: change name / bio / picture of the logged-in user. Names must be 2+ characters and unique.
   update(patch){
     if(patch.name!==undefined){const nm=patch.name.trim();
       if(nm.length<2)return"Name needs 2+ characters.";
       if(db.users.some(x=>x.id!==db.session&&x.name.toLowerCase()===nm.toLowerCase()))return"That name is taken.";
       patch.name=nm}
     Object.assign(me(),patch);save();return null},
+  // --- direct messages ---
+  // others(): every user except me (for the "new message" search).
+  others(){return db.users.filter(x=>x.id!==db.session)},
+  // convos(): one entry per person I have chatted with: the other user, the latest message and the unread count, newest conversation first.
+  convos(){const me=db.session,g={};
+    db.dms.filter(d=>d.from===me||d.to===me).forEach(d=>{const o=d.from===me?d.to:d.from;(g[o]=g[o]||[]).push(d)});
+    return Object.entries(g).map(([o,l])=>{l.sort((a,b)=>a.t-b.t);return{other:user(o),last:l[l.length-1],unread:l.filter(d=>d.to===me&&!d.seen).length}}).filter(c=>c.other).sort((a,b)=>b.last.t-a.last.t)},
+  // thread(o): all messages between me and user o, oldest first.
+  thread(o){const me=db.session;return db.dms.filter(d=>(d.from===me&&d.to===o)||(d.from===o&&d.to===me)).sort((a,b)=>a.t-b.t)},
+  sendDm(o,text){db.dms.push({id:uid("d"),from:db.session,to:o,text,t:Date.now(),seen:false});save()},
+  // markSeen: marks messages from o as read (only writes if something changed).
+  markSeen(o){let c=false;db.dms.forEach(d=>{if(d.to===db.session&&d.from===o&&!d.seen){d.seen=true;c=true}});if(c)save()},
+  unread(){return db.dms.filter(d=>d.to===db.session&&!d.seen).length},
   // --- hobbies: most popular first (members, then posts) ---
   popular(list){return list.slice().sort((a,b)=>members(b)-members(a)||count(b)-count(a))},
+  // join: add hobby h to my list and make it the one I am viewing.
   join(h){const u=me();if(!u.joined.includes(h))u.joined.push(h);u.current=h;save()},
+  // setCurrent: view hobby h without joining it.
   setCurrent(h){me().current=h;save()},
+  // leaveKeep: leave hobby h but keep viewing it (used by the broken-heart button in the header).
+  leaveKeep(h){const u=me();u.joined=u.joined.filter(x=>x!==h);save()},
+  // leave: leave hobby h; if I was viewing it, switch to my first remaining hobby (used by the list in "My hobbies").
   leave(h){const u=me();u.joined=u.joined.filter(x=>x!==h);if(u.current===h)u.current=u.joined[0]||null;save()},
+  // popularPosts: ALL posts ranked by (likes - dislikes), then number of comments, then newest. The page shows the top 30 and hides posts I hid.
   // all posts ranked by likes minus dislikes, then comments, then newest (the view hides hidden ones and keeps the top 30)
   popularPosts(){const sc=p=>Object.values(p.votes).reduce((a,b)=>a+b,0),nc=p=>db.comments.filter(c=>c.pid===p.id).length;
     return db.posts.slice().sort((a,b)=>sc(b)-sc(a)||nc(b)-nc(a)||b.t-a.t)},
   // --- posts: newest first ---
+  // feed: posts of hobby h, either photo posts or text posts, newest first. Hidden posts are left out unless showHidden.
   feed(h,photo,showHidden){const hid=me().hidden;return db.posts.filter(p=>p.hobby===h&&!!p.img===photo&&(showHidden||!hid.includes(p.id))).sort((a,b)=>b.t-a.t)},
+  // hiddenIn: how many posts I have hidden in this hobby/type (for the "Show N hidden" button).
   hiddenIn(h,photo){const hid=me().hidden;return db.posts.filter(p=>p.hobby===h&&!!p.img===photo&&hid.includes(p.id)).length},
   hiddenAll(){const hid=me().hidden;return db.posts.filter(p=>hid.includes(p.id)).sort((a,b)=>b.t-a.t)},
   byUser(id){return db.posts.filter(p=>p.uid===id).sort((a,b)=>b.t-a.t)},
+  // savePost: create a post, or update it if d.id exists.
   savePost(d){
     const photo=d.kind==="photo";
     if(d.id){const p=post(d.id);p.text=d.text;p.img=photo?d.img:null}
     else db.posts.push({id:uid("p"),hobby:d.hobby,uid:db.session,text:d.text,img:photo?d.img:null,t:Date.now(),votes:{}});
     save()},
+  // remove: delete a post and the comments on it.
   remove(id){db.posts=db.posts.filter(p=>p.id!==id);db.comments=db.comments.filter(c=>c.pid!==id);save()},
   // --- reactions ---
+  // vote: v is 1 (like) or -1 (dislike). Pressing the same one again removes the vote.
   vote(id,v){const p=post(id),k=db.session;if(p.votes[k]===v)delete p.votes[k];else p.votes[k]=v;save()},
+  // hide: toggle a post in my personal hidden list (it is hidden only for me).
   hide(id){const u=me();u.hidden=u.hidden.includes(id)?u.hidden.filter(x=>x!==id):[...u.hidden,id];save()},
+  // comments(postId): every comment and reply of a post, oldest first. The View arranges them into a tree.
   comments(id){return db.comments.filter(c=>c.pid===id).sort((a,b)=>a.t-b.t)},
-  comment(id,text){db.comments.push({id:uid("c"),pid:id,uid:db.session,text,t:Date.now()});save()}
+  // comment: add a comment to post id. parent = the comment being answered (null for a top-level comment).
+  comment(id,text,parent=null){db.comments.push({id:uid("c"),pid:id,parent,uid:db.session,text,t:Date.now(),votes:{}});save()},
+  // voteC: like/dislike a comment, same rules as vote().
+  voteC(id,v){const c=db.comments.find(x=>x.id===id);if(!c)return;c.votes=c.votes||{};const k=db.session;if(c.votes[k]===v)delete c.votes[k];else c.votes[k]=v;save()}
 }})();
 
+// VIEW: turns data into HTML text. These functions only READ data and return strings.
+// Buttons carry onclick="C.something(...)" which calls the Controller. S is the UI state (see the Controller),
+// u is the logged-in user.
 // ===== VIEWS =====
 // VIEW: turns data into HTML strings. Never changes data.
+// esc(): makes user text safe to put in HTML (turns < > & " into harmless codes). Always use it on text people typed.
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const V={
+  // styleBtn: the palette button in the header. styleMenu: the dropdown (Light/Dark + themes), drawn only while open.
+  styleBtn(S){return`<button class="dmbtn stylebtn ${S.skinOpen?"on":""}" onclick="C.skinMenu()" aria-label="Appearance" title="Appearance">${svg(ICONS.painting,24,"ni")}</button>`},
+  styleMenu(S){if(!S.skinOpen)return"";return`<div class="skinback" onclick="C.skinMenu()"></div><div class="skinmenu"><div class="seg"><button class="${S.dark?"":"on"}" onclick="C.setMode(false)">${svg(SUN,18,"ico")} Light</button><button class="${S.dark?"on":""}" onclick="C.setMode(true)">${svg(MOON,18,"ico")} Dark</button></div><div class="skinhint">Theme for Popular, Explore, My hobbies, Profile and Messages</div>${SKINS.map(k=>`<button class="skinopt ${S.skin===k.id?"on":""}" onclick="C.setSkin('${k.id}')"><span class="sw" style="background:${k.sw}"></span><span>${k.name}</span>${S.skin===k.id?`<span class="ck">✓</span>`:""}</button>`).join("")}</div>`},
+
+  // ago(time): "just now", "5m ago", "3h ago", "2d ago".
   ago(t){const s=(Date.now()-t)/1000;return s<60?"just now":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago"},
+  // avatar: profile picture, or a round coloured circle with the first letter of the name.
   avatar(u,n=36){return u.pic?`<img class="av" src="${u.pic}" width="${n}" height="${n}" alt="${esc(u.name)}">`:`<div class="av" style="width:${n}px;height:${n}px;font-size:${Math.round(n/2.4)}px">${esc(u.name[0].toUpperCase())}</div>`},
+  // auth: the login / sign-up card. mode is "in" or "up".
   auth(mode,err){const i=mode==="in";return`<div class="auth card"><h1>Circles</h1><p class="meta">Find your people through what you love.</p>
     <div class="tog"><button class="btn ${i?"on":""}" onclick="C.mode('in')">Log in</button><button class="btn ${i?"":"on"}" onclick="C.mode('up')">Sign up</button></div>
-    ${err?`<p class="err">${esc(err)}</p>`:""}<input type="text" id="an" placeholder="Name" autocomplete="username"><input type="password" id="ap" placeholder="Password" autocomplete="${i?"current-password":"new-password"}">
+    ${err?`<p class="err">${esc(err)}</p>`:""}<input type="text" id="an" placeholder="Name" autocomplete="username" onkeydown="if(event.key==='Enter')C.auth()"><input type="password" id="ap" placeholder="Password" autocomplete="${i?"current-password":"new-password"}" onkeydown="if(event.key==='Enter')C.auth()">
     <button class="btn" onclick="C.auth()">${i?"Log in":"Create account"}</button></div>`},
-  header(h,tab){
-    const x=h&&M.H[h],[title,sub,icon]=tab==="popular"
-      ?["Popular","Top posts and photos across every hobby.",ico("n_popular",44,"hico")]
-      :[x?esc(x.name):"Circles",x?esc(x.tag):"Join a hobby to get started.",x?ico(h,44,"hico"):""];
-    return`<header><div><h1>${title}</h1><p>${sub}</p></div>${icon}</header>`},
+  // pickList: the users matching the search text in "New message". Names starting with the text come first. Nothing is listed until you type.
+  pickList(q){const all=M.others();if(!all.length)return`<p class="meta">No other users yet.</p>`;q=q.trim().toLowerCase();if(!q)return"";const r=all.filter(o=>o.name.toLowerCase().includes(q)).sort((a,b)=>{const x=a.name.toLowerCase().startsWith(q)?0:1,y=b.name.toLowerCase().startsWith(q)?0:1;return x-y||a.name.localeCompare(b.name)});return r.length?r.map(o=>`<div class="who pick" onclick="C.openDm('${o.id}')">${V.avatar(o,36)}<strong>${esc(o.name)}</strong></div>`).join(""):`<p class="meta">No users match “${esc(q)}”.</p>`},
+  // cmts: draws the comment tree of one post.
+  //   - sorted by likes (the order is frozen in S.cscore until you reopen the comments, so it doesn't jump when you vote)
+  //   - one(c,depth) draws a comment and then its replies, so replies nest naturally
+  //   - each comment has like / dislike / reply buttons with the count above, and a fold button when it has replies
+  cmts(p,cs,S,u,h){
+    if(!cs.length)return`<p class="meta">No comments yet.</p>`;
+    S.cscore=S.cscore||{};const snap=S.cscore[p.id]||(S.cscore[p.id]=Object.fromEntries(cs.map(c=>[c.id,Object.values(c.votes||{}).reduce((a,b)=>a+b,0)])));
+    const kids=id=>cs.filter(c=>(c.parent||null)===id).sort((a,b)=>(snap[b.id]||0)-(snap[a.id]||0)||a.t-b.t),count=id=>kids(id).reduce((n,c)=>n+1+count(c.id),0);
+    const b=(on,fn,label,icon,n,cl)=>`<span class="cb"><span class="cn" data-n="${n}">${n}</span><button class="${cl} ${on?"on":""}" onclick="${fn}" aria-label="${label}" title="${label}">${icon}</button></span>`;
+    const one=(c,d)=>{const a=M.user(c.uid),vs=c.votes||{},v=Object.values(vs),up=v.filter(x=>x>0).length,dn=v.filter(x=>x<0).length,my=vs[u.id],n=count(c.id),open=S.replying===c.id,fold=(S.folded||{})[c.id];
+      return`<div class="cmt ${d>=3?"flat":""}"><div class="cmh">${V.avatar(a,26)}<strong>${esc(a.name)}</strong><span class="meta">${V.ago(c.t)}</span></div><p>${esc(c.text)}</p>
+      <div class="acts cact" data-h="${h}">${b(my===1,`C.voteC('${c.id}',1)`,"Like comment",rico(h,"like",16),up,"up")}${b(my===-1,`C.voteC('${c.id}',-1)`,"Dislike comment",rico(h,"dislike",16),dn,"dn")}${b(open,`C.replyTo('${c.id}','${p.id}')`,"Reply",rico(h,"comment",16),n)}${n?`<span class="cb"><span class="cn" data-n="">&nbsp;</span><button class="fold2 ${fold?"on":""}" onclick="C.fold(\'${c.id}\')" aria-label="${fold?"Expand":"Collapse"} replies" title="${fold?"Expand":"Collapse"} replies"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${fold?"M7 6l5 5 5-5M7 13l5 5 5-5":"M7 11l5-5 5 5M7 18l5-5 5 5"}"/></svg></button></span>`:""}</div>
+      ${fold?"":kids(c.id).map(k=>one(k,d+1)).join("")}</div>`};
+    return kids(null).map(c=>one(c,0)).join("")},
+  // header: the coloured top bar. Left: icon + title (hobby name, or the page name on neutral pages).
+  // Right: + (new post), join OR leave (hobby pages only), appearance, and DMs with the unread badge.
+  header(h,tab,S,u){
+    const x=h&&M.H[h],P={popular:["Popular","n_popular"],add:["Explore","n_add"],hobbies:["My hobbies","n_hobbies"],me:["Profile","n_me"],dms:["Messages","n_dm"],thread:["Messages","n_dm"]}[tab];
+    const [title,icon]=P?[P[0],ico(P[1],40,"hico")]:[x?esc(x.name):"Circles",x?ico(h,40,"hico"):""],n=M.unread(),feedTab=tab==="photos"||tab==="text";
+    return`<header><div class="hl">${icon}<h1>${title}</h1></div><div class="hr">${feedTab&&h?`<button class="dmbtn" onclick="C.compose('${tab==="photos"?"photo":"text"}')" aria-label="New post" title="New post"><svg class="ni" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>`:""}${feedTab&&h&&!u.joined.includes(h)?`<button class="dmbtn" onclick="C.joinHere('${h}')" aria-label="Join ${esc(M.H[h].name)}" title="Join ${esc(M.H[h].name)}"><svg class="ni" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-8-4.9-8-10.7A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 8 2.4c0 5.8-8 10.7-8 10.7z"/></svg></button>`:""}${feedTab&&h&&u.joined.includes(h)?(S.leaving===h?`<button class="dmbtn leavebtn confirm" onclick="C.leaveHere('${h}')" aria-label="Confirm leave ${esc(M.H[h].name)}" title="Tap again to leave ${esc(M.H[h].name)}"><svg class="ni" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`:`<button class="dmbtn leavebtn" onclick="C.leaveHere('${h}')" aria-label="Leave ${esc(M.H[h].name)}" title="Leave ${esc(M.H[h].name)}"><svg class="ni" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-8-4.9-8-10.7A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 8 2.4c0 5.8-8 10.7-8 10.7z"/><path d="M12 7.4l-2.2 3.8 3.2 2.1-2 4.2"/></svg></button>`):""}${V.styleBtn(S)}<button class="dmbtn ${tab==="dms"||tab==="thread"?"on":""}" onclick="C.go('dms')" aria-label="Messages" title="Messages">${ico("n_dm",24,"ni")}${n?`<span class="badge">${n}</span>`:""}</button></div></header>`},
+  // nav: the six round buttons at the bottom. The one for the current page is highlighted.
   nav(tab){return`<nav>${[["popular","Popular"],["photos","Photos"],["text","Posts"],["add","Explore hobbies"],["hobbies","My hobbies"],["me","Profile"]].map(([k,l])=>`<button class="${tab===k?"on":""}" onclick="C.go('${k}')" aria-label="${l}" title="${l}">${ico("n_"+k,28,"ni")}</button>`).join("")}</nav>`},
+  // card: one post. showHobby is true on pages that mix hobbies (Popular, Profile): then the hobby icon
+  // (a button that opens that hobby) appears by the name. Parts: author row, text/photo, reaction buttons,
+  // and (when opened) the comments plus the single comment box.
   card(p,S,u,showHobby){
     const a=M.user(p.uid),h=p.hobby,mine=p.uid===u.id,v=Object.values(p.votes),up=v.filter(x=>x>0).length,dn=v.filter(x=>x<0).length,cs=M.comments(p.id),hid=u.hidden.includes(p.id),my=p.votes[u.id];
-    const b=(on,fn,label,icon,n,c="")=>`<button class="${c} ${on?"on":""}" onclick="${fn}" aria-label="${label}" title="${label}">${icon}${n===undefined?"":`<span>${n}</span>`}</button>`;
-    return`<div class="card ${hid?"faded":""}"><div class="row"><div class="who" onclick="C.profile('${a.id}')">${V.avatar(a,34)}<div><strong>${esc(a.name)}</strong><div class="meta">${V.ago(p.t)}${showHobby?" · "+esc(M.H[h].name):""}</div></div></div>
-      ${mine?`<span><button class="btn ghost" onclick="C.compose(null,'${p.id}')">Edit</button><button class="btn ghost" onclick="C.del('${p.id}')">Delete</button></span>`:""}</div>
+    const b=(on,fn,label,icon,n,c="")=>`<span class="cb"><span class="cn" data-n="${n===undefined?"":n}">${n===undefined?"&nbsp;":n}</span><button class="${c} ${on?"on":""}" onclick="${fn}" aria-label="${label}" title="${label}">${icon}</button></span>`;
+    return`<div class="card ${hid?"faded":""}" data-h="${h}"><div class="row"><div class="who" onclick="C.profile('${a.id}')">${V.avatar(a,34)}<div><div class="nm"><strong>${esc(a.name)}</strong>${showHobby?`<button class="hbadge" onclick="event.stopPropagation();C.pick('${h}')" title="Open ${esc(M.H[h].name)}" aria-label="Open ${esc(M.H[h].name)}">${ico(h,15)}</button>`:""}</div><div class="meta">${V.ago(p.t)}${showHobby?" · "+esc(M.H[h].name):""}</div></div></div>
+      ${mine?`<span><button class="btn ghost" onclick="C.compose(null,'${p.id}')">Edit</button><button class="btn ghost ${S.delPost===p.id?"dangerlink":""}" onclick="C.del('${p.id}')">${S.delPost===p.id?"Confirm delete":"Delete"}</button></span>`:""}</div>
       ${p.text?`<p>${esc(p.text)}</p>`:""}${p.img?`<img class="ph" src="${p.img}" alt="Photo in ${esc(M.H[h].name)}">`:""}
       <div class="acts" data-h="${h}">${b(my===1,`C.vote('${p.id}',1)`,"Like",rico(h,"like"),up,"up")}${b(my===-1,`C.vote('${p.id}',-1)`,"Dislike",rico(h,"dislike"),dn,"dn")}${b(S.open[p.id],`C.toggle('${p.id}')`,"Comments",rico(h,"comment"),cs.length)}${mine?"":b(false,`C.hide('${p.id}')`,hid?"Unhide":"Hide",rico(h,"hide"))}</div>
-      ${S.open[p.id]?`<div class="cm">${cs.map(c=>`<p><strong>${esc(M.user(c.uid).name)}</strong> <span class="meta">${V.ago(c.t)}</span><br>${esc(c.text)}</p>`).join("")||`<p class="meta">No comments yet.</p>`}<div class="row"><input type="text" id="c-${p.id}" placeholder="Add a comment"><button class="btn" onclick="C.comment('${p.id}')">Send</button></div></div>`:""}</div>`},
+      ${S.open[p.id]?`<div class="cm">${V.cmts(p,cs,S,u,h)}${(()=>{const rt=cs.find(c=>c.id===S.replying);return`<div class="composer">${rt?`<div class="replying"><span>Replying to <strong>${esc(M.user(rt.uid).name)}</strong></span><button onclick="C.replyTo('${rt.id}','${p.id}')" aria-label="Cancel reply" title="Cancel reply">✕</button></div>`:""}<div class="cin"><input type="text" id="c-${p.id}" placeholder="${rt?"Write a reply":"Add a comment"}" autocomplete="off" onkeydown="if(event.key===\'Enter\')C.comment(\'${p.id}\')"><button class="sendbtn" onclick="C.comment(\'${p.id}\')" aria-label="Send" title="Send"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div></div>`})()}</div>`:""}</div>`},
+  // feed: the Posts or Photos page of the hobby I am viewing.
   feed(S,u,photo){
     const h=u.current;
     if(!h)return`<div class="empty">You haven’t picked a hobby yet.<br><br><button class="btn" onclick="C.go('add')">Explore hobbies</button></div>`;
     const list=M.feed(h,photo,S.showHidden),hn=M.hiddenIn(h,photo);
     return(list.length?list.map(p=>V.card(p,S,u)).join(""):`<div class="empty">${ico(h,40)}<br>No ${photo?"photos":"posts"} in ${esc(M.H[h].name)} yet. Tap + to share the first one.</div>`)
-      +V.hiddenBtn(S,hn)
-      +`<button class="fab" aria-label="New post" onclick="C.compose('${photo?"photo":"text"}')">+</button>`},
+      +V.hiddenBtn(S,hn)},
+  // compose: the new/edit post page.
   compose(S){
     const d=S.draft,ph=d.kind==="photo",name=esc(M.H[d.hobby].name);
     return`<h2>${d.id?"Edit post":"New post"} in ${name}</h2>`+(d.id?"":`<div class="tog"><button class="btn ${ph?"":"on"}" onclick="C.kind('text')">Text</button><button class="btn ${ph?"on":""}" onclick="C.kind('photo')">Photo</button></div>`)
       +`<div class="card">${ph?`${d.img?`<img class="ph" src="${d.img}" alt="Current photo"><br>`:""}<input type="file" id="file" accept="image/*"><br><br>`:""}<textarea id="txt" rows="${ph?2:5}" placeholder="${ph?"Add a caption":"Share something with "+name}">${esc(d.text)}</textarea><button class="btn" onclick="C.savePost()">${d.id?"Save changes":"Post"}</button> <button class="btn ghost" onclick="C.cancel()">Cancel</button></div>`},
-  hobbyRow(k,btn){return`<div class="card row"><div class="name">${ico(k)}<div><strong>${M.H[k].name}</strong><div class="meta">${M.members(k)} members · ${M.count(k)} posts</div></div></div>${btn}</div>`},
+  // hobbyRow: one hobby in the Explore / My hobbies lists. btn is the button(s) shown on the right.
+  hobbyRow(k,btn){return`<div class="card row" data-h="${k}"><div class="name"><span class="chip">${ico(k,26,"chip-i")}</span><div><strong>${M.H[k].name}</strong><div class="meta">${M.members(k)} members · ${M.count(k)} posts</div></div></div>${btn}</div>`},
+  // explore: hobbies I have not joined, most popular first.
   explore(u){const rest=M.popular(Object.keys(M.H).filter(k=>!u.joined.includes(k)));
     return`<h2>Explore hobbies</h2><p class="meta">Most popular first.</p>`+(rest.length?rest.map(k=>V.hobbyRow(k,`<button class="btn" onclick="C.join('${k}')">Join</button>`)).join(""):`<div class="empty">You’ve joined every hobby for now.</div>`)},
-  mine(u){const my=M.popular(u.joined);
-    return`<h2>My hobbies</h2>`+(my.length?my.map(k=>V.hobbyRow(k,`<span><button class="btn" onclick="C.pick('${k}')">${u.current===k?"Viewing":"Open"}</button> <button class="btn ghost" onclick="C.leave('${k}')">Leave</button></span>`)).join(""):`<div class="empty">No hobbies yet. Tap Explore hobbies to join one.</div>`)},
+  // mine: my hobbies. "Leave" first turns into "Confirm leave" (S.leaving) because browser pop-ups are unreliable.
+  mine(u,S){const my=M.popular(u.joined);
+    return`<h2>My hobbies</h2>`+(my.length?my.map(k=>V.hobbyRow(k,S.leaving===k?`<span><button class="btn danger-btn" onclick="C.leave('${k}')">Confirm leave</button> <button class="btn ghost" onclick="C.leaveAsk(null)">Cancel</button></span>`:`<span><button class="btn" onclick="C.pick('${k}')">${u.current===k?"Viewing":"Open"}</button> <button class="btn ghost" onclick="C.leaveAsk('${k}')">Leave</button></span>`)).join(""):`<div class="empty">No hobbies yet. Tap Explore hobbies to join one.</div>`)},
+  // profile: my own or someone else's profile. When I am editing my own, it shows the edit form, including the delete-account area.
   profile(S,u){
     const id=S.viewUid||u.id,a=M.user(id),own=id===u.id,posts=M.byUser(id);
     const top=own&&S.editing
-      ?`<div class="card"><div id="pvw">${V.avatar(a,80)}</div><br><input type="file" id="pf" accept="image/*" onchange="C.picChosen(this)"><br><br><input type="text" id="pn" value="${esc(a.name)}" aria-label="Name"><textarea id="pb" rows="3" placeholder="Tell people about yourself">${esc(a.bio)}</textarea><button class="btn" onclick="C.saveProfile()">Save profile</button> <button class="btn ghost" onclick="C.cancelEdit()">Cancel</button></div>`
-      :`<div class="card"><div class="name">${V.avatar(a,80)}<div><h2>${esc(a.name)}</h2><div class="meta">${a.joined.map(k=>esc(M.H[k].name)).join(", ")}</div></div></div><p>${esc(a.bio)||"<span class=meta>No bio yet.</span>"}</p>${own?`<button class="btn" onclick="C.edit()">Edit profile</button> <button class="btn ghost" onclick="C.logout()">Log out</button>`:""}</div>`;
+      ?`<div class="card"><div id="pvw">${V.avatar(a,80)}</div><br><input type="file" id="pf" accept="image/*" onchange="C.picChosen(this)"><br><br><input type="text" id="pn" value="${esc(a.name)}" aria-label="Name"><textarea id="pb" rows="3" placeholder="Tell people about yourself">${esc(a.bio)}</textarea><button class="btn" onclick="C.saveProfile()">Save profile</button> <button class="btn ghost" onclick="C.cancelEdit()">Cancel</button>
+        <div class="danger">${S.confirmDel?`<p><strong>Delete your account?</strong> This permanently removes your profile, posts, comments and messages. It can't be undone.</p>${S.delErr?`<p class="err">${esc(S.delErr)}</p>`:""}<input type="password" id="dpw" placeholder="Enter your password to confirm" autocomplete="current-password" onkeydown="if(event.key==='Enter')C.deleteAccount()"><button class="btn danger-btn" onclick="C.deleteAccount()">Yes, delete my account</button> <button class="btn ghost" onclick="C.delAsk(false)">Keep my account</button>`:`<button class="btn ghost dangerlink" onclick="C.delAsk(true)">Delete account</button>`}</div></div>`
+      :`<div class="card pcard"><div class="name">${V.avatar(a,80)}<div><h2>${esc(a.name)}</h2><div class="meta">${a.joined.map(k=>esc(M.H[k].name)).join(", ")}</div></div></div><p>${esc(a.bio)||"<span class=meta>No bio yet.</span>"}</p>${own?`<button class="btn" onclick="C.edit()">Edit profile</button> <button class="btn ghost" onclick="C.logout()">Log out</button>`:`<button class="btn" onclick="C.openDm('${a.id}')">Message</button>`}</div>`;
     const hidden=own?M.hiddenAll():[];
     return top+`<h2>${own?"Your posts":"Posts"}</h2>`+(posts.length?posts.map(p=>V.card(p,S,u,true)).join(""):`<div class="empty">No posts yet.</div>`)
       +(hidden.length?`<h2>Hidden posts</h2><button class="btn ghost" onclick="C.toggleAllHidden()">${S.showAllHidden?"Hide the list":"Show all "+hidden.length+" hidden"}</button>`+(S.showAllHidden?hidden.map(p=>V.card(p,S,u,true)).join(""):""):"")},
+  // dms: list of conversations and the "New message" user search.
+  dms(S,u){
+    const cs=M.convos();
+    const picker=S.picking?`<div class="card"><strong>Message someone</strong><input type="text" id="dmq" class="dmsearch" placeholder="Search users by name" autocomplete="off" oninput="C.dmSearch(this.value)"><div id="dmres">${V.pickList("")}</div></div>`:"";
+    const list=cs.length?cs.map(c=>`<div class="card row convo" onclick="C.openDm('${c.other.id}')"><div class="who">${V.avatar(c.other,44)}<div class="cv"><strong>${esc(c.other.name)}</strong><div class="meta cut">${c.last.from===u.id?"You: ":""}${esc(c.last.text)}</div></div></div><div class="cr"><div class="meta">${V.ago(c.last.t)}</div>${c.unread?`<span class="badge in">${c.unread}</span>`:""}</div></div>`).join(""):`<div class="empty">No conversations yet.<br>Tap New message, or open someone’s profile.</div>`;
+    return`<div class="row"><h2>Your conversations</h2><button class="btn" onclick="C.newDm()">${S.picking?"Close":"New message"}</button></div>`+picker+list},
+  // thread: one conversation with a user.
+  thread(S,u){
+    const o=M.user(S.dmWith);if(!o)return`<div class="empty">Conversation not found.</div>`;
+    const ms=M.thread(o.id);
+    return`<button class="btn ghost" onclick="C.go('dms')">← All messages</button>
+      <div class="card"><div class="who" onclick="C.profile('${o.id}')">${V.avatar(o,44)}<div><strong>${esc(o.name)}</strong><div class="meta">${o.joined.map(k=>esc(M.H[k].name)).join(", ")||"New here"}</div></div></div></div>
+      <div class="msgs">${ms.length?ms.map(d=>`<div class="bub ${d.from===u.id?"me":"them"}">${esc(d.text)}<div class="bt">${V.ago(d.t)}</div></div>`).join(""):`<div class="empty">Say hello to ${esc(o.name)}.</div>`}</div>
+      <div class="dmcomp"><input type="text" id="dmtxt" placeholder="Write a message" onkeydown="if(event.key==='Enter')C.sendDm()"><button class="btn" onclick="C.sendDm()">Send</button></div>`},
+  // hiddenBtn: the "Show N hidden" toggle (only drawn if something is hidden).
   hiddenBtn(S,n){return n?`<button class="btn ghost" onclick="C.toggleHidden()">${S.showHidden?"Hide hidden posts":"Show "+n+" hidden"}</button>`:""},
+  // popular: the Popular page. The order comes from S.order, which is frozen so posts don't reshuffle while you vote.
   popular(S,u){
     const all=(S.order||[]).map(M.post).filter(Boolean),hn=all.filter(p=>u.hidden.includes(p.id)).length;
     const l=all.filter(p=>S.showHidden||!u.hidden.includes(p.id)).slice(0,30);
     return(l.length?l.map(p=>V.card(p,S,u,true)).join(""):`<div class="empty">Nothing here yet.</div>`)+V.hiddenBtn(S,hn)},
-  page(S,u){return({popular:()=>V.popular(S,u),photos:()=>V.feed(S,u,true),text:()=>V.feed(S,u,false),compose:()=>V.compose(S),add:()=>V.explore(u),hobbies:()=>V.mine(u),me:()=>V.profile(S,u)})[S.tab]()}
+  // page: chooses which view to draw for the current tab (S.tab).
+  page(S,u){return({popular:()=>V.popular(S,u),photos:()=>V.feed(S,u,true),text:()=>V.feed(S,u,false),compose:()=>V.compose(S),add:()=>V.explore(u),hobbies:()=>V.mine(u,S),me:()=>V.profile(S,u),dms:()=>V.dms(S,u),thread:()=>V.thread(S,u)})[S.tab]()}
 };
 
+// CONTROLLER: reacts to clicks. Every function changes the Model and/or the UI state S, then calls render().
 // ===== CONTROLLER =====
 // CONTROLLER: handles clicks, asks the Model to change data, then redraws the View.
 const C=(()=>{
-const NEUTRAL_TABS=["popular","add","me","hobbies"]; // pages that keep the basic colours
-const S={editing:false,showAllHidden:false,order:null,tab:"text",mode:"in",err:"",open:{},showHidden:false,viewUid:null,draft:null,back:"text",pic:null};
+// Tabs that do NOT take on a hobby's colours (they use the skin instead).
+const NEUTRAL_TABS=["popular","add","me","hobbies","dms","thread"]; // pages that keep the basic colours
+// S = UI state (not saved, except dark and skin which are read from localStorage on load):
+//   tab        current page: popular | photos | text | add | hobbies | me | dms | thread | compose
+//   dark, skin appearance      skinOpen   appearance menu open
+//   mode, err  login form ("in"/"up") and its error text
+//   open       {postId:true} posts whose comments are open
+//   replying   id of the comment the next comment will answer (null = new top-level comment)
+//   folded     {commentId:true} collapsed reply threads       cscore  frozen comment order per post
+//   order      frozen Popular order                           showHidden / showAllHidden  hidden-post toggles
+//   draft      post being written or edited                    editing / pic   profile editing
+//   confirmDel / delErr / delPost / leaving   the "are you sure?" steps for deleting and leaving
+//   dmWith / picking   open conversation, "new message" search open
+//   viewUid    whose profile is shown (null = mine)
+const S={skinOpen:false,skin:(()=>{try{const v=localStorage.getItem("circles-skin");return SKINS.some(x=>x.id===v)?v:"aurora"}catch(e){return"aurora"}})(),dmWith:null,picking:false,dark:(()=>{try{const v=localStorage.getItem("circles-dark");return v===null?matchMedia("(prefers-color-scheme: dark)").matches:v==="1"}catch(e){return false}})(),editing:false,showAllHidden:false,order:null,tab:"text",mode:"in",err:"",open:{},showHidden:false,viewUid:null,draft:null,back:"text",pic:null};
+// $("#id") is a shortcut for document.querySelector.
 const $=s=>document.querySelector(s);
+// shrink: scales a chosen photo down (max side in px) and re-saves it as a smaller JPEG so the browser storage doesn't fill up.
 function shrink(f,max,cb){const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{
   const k=Math.min(1,max/Math.max(i.width,i.height)),c=document.createElement("canvas");
   c.width=i.width*k;c.height=i.height*k;c.getContext("2d").drawImage(i,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",.7))};i.src=r.result};r.readAsDataURL(f)}
+// render: redraws the whole page from the current state. Called after every change.
+//   1. sets data-mode / data-skin / data-theme on <body> (this is what the CSS reacts to)
+//   2. logged out -> login screen; otherwise header + page + nav + appearance menu
 function render(){
   const u=M.me(),app=$("#app");
-  if(!u){document.body.dataset.theme="none";app.innerHTML=V.auth(S.mode,S.err);return}
+  document.body.dataset.mode=S.dark?"dark":"light";document.body.dataset.skin=S.skin;
+  if(!u){document.body.dataset.theme="none";app.innerHTML=V.auth(S.mode,S.err)+`<div class="authstyle">${V.styleBtn(S)}</div>`+V.styleMenu(S);return}
   if(S.tab==="compose"&&!S.draft)S.tab="text";
   if(S.tab==="popular"&&!S.order)S.order=M.popularPosts().map(p=>p.id); // order is frozen until you reopen the page
   document.body.dataset.theme=NEUTRAL_TABS.includes(S.tab)?"none":(u.current||"none");
-  app.innerHTML=V.header(u.current,S.tab)+`<main>${V.page(S,u)}</main>`+V.nav(S.tab)}
+  app.innerHTML=V.header(u.current,S.tab,S,u)+`<main>${V.page(S,u)}</main>`+V.nav(S.tab)+V.styleMenu(S)}
+// keep(fn): runs fn (usually render) but restores anything typed in a comment box afterwards, so a draft survives a re-render.
+const keep=f=>{const m={};document.querySelectorAll("input[id^=c-]").forEach(i=>m[i.id]=i.value);f();for(const k in m){const i=document.getElementById(k);if(i)i.value=m[k]}};
+// The public API: everything here can be called from onclick="C.name(...)" in the HTML.
 const api={
+  // --- appearance ---
+  setMode(d){S.dark=d;try{localStorage.setItem("circles-dark",d?"1":"0")}catch(e){}render()},
+  skinMenu(){S.skinOpen=!S.skinOpen;render()},
+  setSkin(id){S.skin=id;S.skinOpen=false;try{localStorage.setItem("circles-skin",id)}catch(e){}render()},
+  // --- direct messages ---
+  openDm(id){S.dmWith=id;S.picking=false;S.editing=false;S.tab="thread";M.markSeen(id);render();scrollTo(0,document.body.scrollHeight)},
+  newDm(){S.picking=!S.picking;render();if(S.picking){const i=document.getElementById("dmq");i&&i.focus()}},
+  dmSearch(v){const r=document.getElementById("dmres");if(r)r.innerHTML=V.pickList(v)},
+  sendDm(){const t=$("#dmtxt").value.trim();if(!t)return;M.sendDm(S.dmWith,t);render();$("#dmtxt").focus();scrollTo(0,document.body.scrollHeight)},
+  // --- login / sign-up ---
   mode(m){S.mode=m;S.err="";render()},
   async auth(){const n=$("#an").value,p=$("#ap").value;S.err=(S.mode==="in"?await M.logIn(n,p):await M.signUp(n,p))||"";S.tab="text";render()},
   logout(){M.logout();S.editing=false;S.tab="text";S.viewUid=null;render()},
-  go(t){S.editing=false;S.pic=null;S.showAllHidden=false;S.order=null;S.tab=t;S.viewUid=null;S.draft=null;render()},
+  // go: switch page. Also clears every temporary state (open menus, confirmations, frozen orders) so each page starts clean.
+  go(t){S.leaving=null;S.delPost=null;S.cscore={};S.replying=null;S.skinOpen=false;S.dmWith=null;S.picking=false;S.editing=false;S.pic=null;S.showAllHidden=false;S.order=null;S.tab=t;S.viewUid=null;S.draft=null;render()},
+  // pick: open hobby h (its Posts page) without joining. join: join and open. joinHere/leaveHere: join/leave from the header and stay on the page.
   pick(h){M.setCurrent(h);S.tab="text";render()},
   join(h){M.join(h);S.tab="text";render()},
-  leave(h){if(confirm("Leave "+M.H[h].name+"? Your posts stay, but it disappears from your list.")){M.leave(h);render()}},
+  joinHere(h){M.join(h);render()},
+  leaveHere(h){if(S.leaving!==h){S.leaving=h;render();return}M.leaveKeep(h);S.leaving=null;render()},
+  // leaveAsk -> leave: the two-step "Leave" -> "Confirm leave" in My hobbies.
+  leaveAsk(h){S.leaving=h;render()},
+  leave(h){M.leave(h);S.leaving=null;render()},
+  // --- reactions and comments ---
   vote(id,v){M.vote(id,v);render()},
   hide(id){M.hide(id);render()},
-  toggle(id){S.open[id]=!S.open[id];render()},
+  toggle(id){S.replying=null;S.open[id]=!S.open[id];if(S.cscore)delete S.cscore[id];render()},
   toggleHidden(){S.showHidden=!S.showHidden;render()},
   toggleAllHidden(){S.showAllHidden=!S.showAllHidden;render()},
-  comment(id){const t=$("#c-"+id).value.trim();if(!t)return;M.comment(id,t);S.open[id]=true;render()},
+  // comment: send the text in the single comment box. If S.replying is set it becomes a reply to that comment.
+  comment(id){const t=$("#c-"+id).value.trim();if(!t)return;const rt=S.replying&&M.comments(id).some(c=>c.id===S.replying)?S.replying:null;M.comment(id,t,rt);S.replying=null;S.open[id]=true;render()},
+  voteC(id,v){M.voteC(id,v);keep(render)},
+  // fold: collapse / expand the replies under a comment.
+  fold(id){S.folded=S.folded||{};S.folded[id]=!S.folded[id];keep(render)},
+  // replyTo: press reply on a comment -> the comment box now answers it (press again to cancel).
+  replyTo(id,pid){S.replying=S.replying===id?null:id;keep(render);const i=document.getElementById("c-"+pid);i&&i.focus()},
+  // --- writing and editing posts ---
   compose(kind,id){
     const p=id&&M.post(id);if(S.tab!=="compose")S.back=S.tab;
     S.draft=p?{id:p.id,hobby:p.hobby,kind:p.img?"photo":"text",text:p.text,img:p.img}:{id:null,hobby:M.me().current,kind,text:"",img:null};
@@ -331,18 +790,25 @@ const api={
   savePost(){
     const d=S.draft,text=$("#txt").value.trim(),photo=d.kind==="photo",f=photo&&$("#file").files[0];
     const done=img=>{
-      if(photo&&!img){alert("Choose a photo first.");return}
-      if(!photo&&!text){alert("Write something first.");return}
+      if(photo&&!img){toast("Choose a photo first.");return}
+      if(!photo&&!text){toast("Write something first.");return}
       M.savePost({...d,text,img});
       S.tab=S.back==="me"?"me":(photo?"photos":"text");S.draft=null;render()};
     f?shrink(f,800,done):done(d.img)},
-  del(id){if(confirm("Delete this post?")){M.remove(id);render()}},
+  // del: two-step delete of one of my posts ("Delete" -> "Confirm delete").
+  del(id){if(S.delPost!==id){S.delPost=id;render();return}M.remove(id);S.delPost=null;render()},
+  // --- profiles ---
   profile(id){S.editing=false;S.tab="me";S.viewUid=id===M.me().id?null:id;render();scrollTo(0,0)},
   picChosen(input){const f=input.files[0];if(f)shrink(f,240,d=>{S.pic=d;$("#pvw").innerHTML=V.avatar({pic:d,name:"?"},80)})},
-  saveProfile(){const err=M.update({name:$("#pn").value,bio:$("#pb").value,...(S.pic?{pic:S.pic}:{})});if(err){alert(err);return}S.pic=null;S.editing=false;render()},
+  saveProfile(){const err=M.update({name:$("#pn").value,bio:$("#pb").value,...(S.pic?{pic:S.pic}:{})});if(err){toast(err);return}S.pic=null;S.editing=false;render()},
   edit(){S.editing=true;S.pic=null;render()},
-  cancelEdit(){S.editing=false;S.pic=null;render()}
+  cancelEdit(){S.editing=false;S.pic=null;S.confirmDel=false;S.delErr="";render()},
+  // delAsk -> deleteAccount: show the password check, then delete the account for good.
+  delAsk(b){S.confirmDel=b;S.delErr="";render()},
+  async deleteAccount(){const e=await M.deleteAccount(($("#dpw")||{}).value||"");if(e){S.delErr=e;render();return}S.editing=false;S.confirmDel=false;S.delErr="";S.tab="text";S.viewUid=null;S.mode="in";S.err="";render()}
 };
+// Escape closes the appearance menu
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.skinOpen){S.skinOpen=false;render()}});
 render();
 return api})();
 
